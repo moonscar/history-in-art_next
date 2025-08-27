@@ -1,0 +1,103 @@
+{
+  "site": {
+    "title": "History-in-Art - 通过艺术品重新发现历史，探索时间与地理的交汇点",
+    "name": "History in Art",
+    "tagline": "Art as eyes, witness history",
+    "description": "History-in-Art 是一款将 全球艺术作品 与 历史时空探索 融合的智能交互平台，旨在帮助用户在地理与时间的双重维度中发现、研究与欣赏艺术。通过 交互式世界地图 和 时间轴浏览，用户可以从古代文明到现代艺术，跨越数千年历史，探索各大洲、各国、各城市的绘画、雕塑与其他艺术形式。内置的 AI 艺术助手。内置的 AI 时空信息助手 精准聚焦于作品的年代背景与地域分布，让用户在地图与时间轴上高效开展时空艺术探索。History-in-Art 都能让您在沉浸式的可视化体验中了解作品的历史背景、创作故事与文化价值。适合艺术爱好者、历史学者、教育工作者以及希望通过艺术了解世界的人士，是一个兼具学习、研究与灵感发现的艺术导航平台。"
+  },
+  "header": {
+    "artworksFound": "件艺术品",
+    "updating": "更新中...",
+    "timeRange": "{{start}} - {{end}}"
+  },
+  "map": {
+    "title": "交互式世界地图",
+    "locations": "个地点",
+    "heatmapTitle": "热力图 - 艺术品数量",
+    "noArtworks": "无艺术品",
+    "artworkCount": "{{count}} 件",
+    "artworkCountPlural": "{{count}} 件",
+    "totalCountries": "总计: {{count}} 个国家/地区有艺术品",
+    "maxCount": "最大值: {{count}} 件",
+    "clickCountry": "点击国家查看艺术品",
+    "clickMap": "点击地图显示城市 • 点击城市名查询艺术品",
+    "viewArtworks": "查看艺术品",
+    "queryLocation": "查询该地区艺术品",
+    "noArtworksFound": "在 {{city}}, {{country}} ({{start}}-{{end}}) 未找到艺术品",
+    "clickedLocation": "点击的位置:",
+    "hideHeatmap": "隐藏热力图",
+    "showHeatmap": "显示热力图",
+    "loadingMap": "正在加载世界地图..."
+  },
+  "timeline": {
+    "title": "历史时间轴",
+    "periods": {
+      "Ancient": "古代",
+      "Medieval": "中世纪", 
+      "Renaissance": "文艺复兴",
+      "Baroque": "巴洛克",
+      "Neoclassical": "新古典主义",
+      "Impressionism": "印象派",
+      "Modern": "现代",
+      "Contemporary": "当代"
+    }
+  },
+  "chat": {
+    "title": "AI 艺术品助手",
+    "placeholder": "例如：显示文艺复兴时期意大利的画作，或查找19世纪法国印象派作品...",
+    "welcomeMessage": "我是你的艺术时光机，只能带你去特定的年代与地方。\n例如：\n\"法国大革命时期的俄罗斯\" \n\"牛顿时代的中国\" \n输入时间与地点，我们立刻出发。",
+    "send": "发送"
+  },
+  "artwork": {
+    "title": "作品标题",
+    "artist": "艺术家",
+    "year": "创作年代",
+    "location": "地点",
+    "movement": "艺术流派",
+    "medium": "创作媒介",
+    "description": "作品描述",
+    "period": "历史时期",
+    "viewInGoogle": "在 Google Arts & Culture 中查看",
+    "closeDetails": "关闭艺术品详情"
+  },
+  "results": {
+    "title": "搜索结果",
+    "artworkCount": "{{count}} 件作品",
+    "filters": "筛选和排序",
+    "reset": "重置",
+    "movement": "艺术流派",
+    "artist": "艺术家",
+    "sortBy": "排序方式",
+    "sortByYear": "按年代",
+    "sortByTitle": "按标题",
+    "sortByArtist": "按艺术家",
+    "allMovements": "所有流派",
+    "allArtists": "所有艺术家",
+    "noResults": "未找到匹配的艺术品",
+    "noResultsDesc": "请尝试调整筛选条件或重新搜索。"
+  },
+  "loading": {
+    "title": "加载中...",
+    "artworks": "艺术品数据正在加载中，请稍候...",
+    "fetchingData": "正在从数据库获取数据..."
+  },
+  "error": {
+    "databaseConnection": "数据库连接错误",
+    "description": "网站正在加载中，请稍后再试。",
+    "supabaseSetup": "请确保 Supabase 已正确配置。点击右上角的\"连接到 Supabase\"按钮来设置数据库连接。"
+  },
+  "footer": {
+    "about": "关于我们",
+    "privacy": "隐私政策", 
+    "terms": "使用条款",
+    "contact": "联系我们",
+    "sitemap": "网站地图",
+    "copyright": "© 2025 History in Art. Rediscovering history through works of art by time and geography.",
+    "subtitle": "通过艺术品重新发现历史，探索时间与地理的交汇点"
+  },
+  "language": {
+    "switch": "切换语言",
+    "chinese": "中文",
+    "english": "English"
+  }
+}
