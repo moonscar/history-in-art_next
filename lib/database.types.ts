@@ -23,7 +23,7 @@ export interface Database {
           longitude: number | null
           description: string | null
           cultural_context: string | null
-          tags: Json
+          tags: string[] | null
           image_url: string | null
           thumbnail_url: string | null
           map_display_priority: number | null
@@ -43,7 +43,7 @@ export interface Database {
           longitude?: number | null
           description?: string | null
           cultural_context?: string | null
-          tags?: Json
+          tags: string[] | null
           image_url?: string | null
           thumbnail_url?: string | null
           map_display_priority?: number | null
@@ -63,7 +63,7 @@ export interface Database {
           longitude?: number | null
           description?: string | null
           cultural_context?: string | null
-          tags?: Json
+          tags: string[] | null
           image_url?: string | null
           thumbnail_url?: string | null
           map_display_priority?: number | null
@@ -76,7 +76,10 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_artwork_counts_by_country: {
+        Args: { start_year?: number | null; end_year?: number | null }
+        Returns: { country: string; count: number }[]
+      }
     }
     Enums: {
       [_ in never]: never

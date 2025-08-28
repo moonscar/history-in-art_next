@@ -25,11 +25,6 @@ const InteractiveWorldMap = dynamic(() => import('@/components/InteractiveWorldM
   ssr: false,
 });
 
-// const useTranslation = () => ({
-//   t: (key: string) => key,
-//   i18n: { language: 'zh' }
-// });
-
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -50,7 +45,7 @@ function App() {
   }>(initialState.chatQuery);
 
   // Use the custom hook to fetch artworks from database
-  const { 
+  const {
     artworks: dbArtworks, 
     loading, 
     error, 
@@ -218,8 +213,8 @@ function App() {
   
   if (chatQuery.location) {
     breadcrumbItems.push({ 
-      name: i18n.language === 'zh' ? `${chatQuery.location}艺术品` : `${chatQuery.location} Artworks`, 
-      url: `https://history-in-art.org?location=${encodeURIComponent(chatQuery.location)}` 
+      name: i18n.language === 'zh' ? `${chatQuery.location.country}艺术品` : `${chatQuery.location.country} Artworks`, 
+      url: `https://history-in-art.org?country=${encodeURIComponent(chatQuery.location.country)}` 
     });
   }
   

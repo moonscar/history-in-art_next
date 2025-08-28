@@ -1,4 +1,4 @@
-import { Artwork } from '../types';
+import { Artwork, Location } from '../types';
 
 // Generate structured data for the website
 export const generateWebsiteStructuredData = () => ({
@@ -87,7 +87,7 @@ export const generateArtworkStructuredData = (artwork: Artwork) => ({
 });
 
 // Generate structured data for art collection
-export const generateCollectionStructuredData = (artworks: Artwork[], location?: string, timeRange?: { start: number; end: number }) => {
+export const generateCollectionStructuredData = (artworks: Artwork[], location?: Location, timeRange?: { start: number; end: number }) => {
   const baseData = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",

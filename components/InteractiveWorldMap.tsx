@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { point } from '@turf/helpers';
-import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
+// import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 import rewind from '@turf/rewind';
-import { Artwork, TimeRange } from '../types';
+import { Artwork, TimeRange, Location } from '../types';
 import { MapPin, Image as ImageIcon, Calendar, User, BarChart3 } from 'lucide-react';
 import { ArtworkService } from '../services/artworkService';
 import worldCountries from '../data/world-countries.json';
@@ -23,7 +23,7 @@ L.Icon.Default.mergeOptions({
 interface InteractiveWorldMapProps {
   artworks: Artwork[];
   timeRange: TimeRange;
-  onLocationTimeSelect: (location: string, timeRange: TimeRange) => void;
+  onLocationTimeSelect: (location: Location, timeRange: TimeRange) => void;
   onArtworkSelect: (artwork: Artwork) => void;
 }
 
@@ -115,23 +115,23 @@ const MapClickHandler: React.FC<{
 };
 
 // Component to get country name from coordinates (simplified)
-const getCountryFromCoordinates = (lat: number, lng: number): string => {
-  try {
-    const clickPoint = point([lng, lat]);
+// const getCountryFromCoordinates = (lat: number, lng: number): string => {
+//   try {
+//     const clickPoint = point([lng, lat]);
 
-    // 在 worldCountries 数据中查找包含该点的国家
-    for (const feature of worldCountries.features) {
-      if (booleanPointInPolygon(clickPoint, feature)) {
-        return feature.properties.NAME || feature.properties.name || 'Unknown';
-      }
-    }
+//     // 在 worldCountries 数据中查找包含该点的国家
+//     for (const feature of worldCountries.features) {
+//       if (booleanPointInPolygon(clickPoint, feature)) {
+//         return feature.properties.NAME || feature.properties.name || 'Unknown';
+//       }
+//     }
 
-    return 'Unknown Location';
-  } catch (error) {
-    console.error('Error in coordinate detection:', error);
-    return 'Unknown Location';
-  }
-};
+//     return 'Unknown Location';
+//   } catch (error) {
+//     console.error('Error in coordinate detection:', error);
+//     return 'Unknown Location';
+//   }
+// };
 
 // Get city name from coordinates
 const getCityFromCoordinates = async (lat: number, lng: number): Promise<string> => {
@@ -257,7 +257,7 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
         label = t("map.artworkCount", { count: start });
       } else {
         // label = start === end ? `${start} 件` : `${start}-${end} 件`;
-        label = start === end ? t("map.artworkCount", { count: start }) : t("map.artworkCount", { count: `${start} - ${end}`});
+        label = start === end ? t("map.artworkCount", { count: start }) : t("map.artworkCount", { count: start - end});
       }
       
       labels.push({
@@ -297,22 +297,22 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
     const center = bounds.getCenter();
     
     try {
-      const { country, city } = await getLocationFromCoordinates(center.lat, center.lng);
-      const count = countryCounts[country] || countryCounts[feature.properties.NAME] || 0;
+      const location: Location = await getLocationFromCoordinates(center.lat, center.lng);
+      const count = countryCounts[location.country] || countryCounts[feature.properties.NAME] || 0;
 
       if (count > 0) {
-        onLocationTimeSelect(country, timeRange);
+        onLocationTimeSelect(location, timeRange);
       }
 
       // Show popup with country info
       const popup = L.popup()
         .setContent(`
           <div class="bg-gray-800 text-white p-3 rounded-lg">
-            <h3 class="font-bold text-blue-400 mb-2">${country}</h3>
+            <h3 class="font-bold text-blue-400 mb-2">${location.country}</h3>
             <p class="text-gray-300 text-sm mb-2">${count} artwork${count !== 1 ? 's' : ''}</p>
             ${count > 0 ? 
-              `<button onclick="window.queryCountry('${country}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded text-sm">查看艺术品</button>` : 
-              '<p class="text-gray-500 text-xs">该时期无艺术品</p>'
+              `<button onclick="window.queryCountry('${location.country}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded text-sm">{t('map.viewArtworks')}</button>` : 
+              `<p class="text-gray-500 text-xs">{t('map.noArtworks')}</p>`
             }
           </div>
         `);
@@ -333,7 +333,11 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
   // Add global function for popup button
   useEffect(() => {
     (window as any).queryCountry = (countryName: string) => {
-      onLocationTimeSelect(countryName, timeRange);
+      const location: Location = {
+        country: countryName,
+        city: ''
+      }
+      onLocationTimeSelect(location, timeRange);
     };
 
     return () => {
@@ -352,7 +356,7 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
   }, {} as { [key: string]: Artwork[] });
 
   const handleLocationClick = (locationArtworks: Artwork[]) => {
-    const location = locationArtworks[0].location.country;
+    const location = locationArtworks[0].location;
     onLocationTimeSelect(location, timeRange);
   };
 
@@ -410,7 +414,7 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
     );
 
     if (locationArtworks.length > 0) {
-      onLocationTimeSelect(clickedLocation.country, timeRange);
+      onLocationTimeSelect(clickedLocation, timeRange);
     } else {
       // Show a message if no artworks found for this location/time combination
       alert(`在 ${clickedLocation.city}, ${clickedLocation.country} (${timeRange.start}-${timeRange.end}) 未找到艺术品`);

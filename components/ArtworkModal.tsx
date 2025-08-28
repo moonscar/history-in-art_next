@@ -48,8 +48,6 @@ const ArtworkModal: React.FC<ArtworkModalProps> = ({ artwork, onClose }) => {
           
           {/* Content */}
           <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6333474665018049"
-                 crossorigin="anonymous"></script>
             {/* Image */}
             <section className="space-y-4" aria-label="艺术品图片">
               <figure className="relative rounded-xl overflow-hidden">

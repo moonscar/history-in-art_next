@@ -23,8 +23,8 @@ export interface TimeRange {
 export interface Location {
   country: string;
   city: string;
-  coordinates: [number, number];
-  artworkCount: number;
+  coordinates?: [number, number];
+  artworkCount?: number;
 }
 
 export interface HistoricalPeriod {

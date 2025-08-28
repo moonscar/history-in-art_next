@@ -1,7 +1,8 @@
 // URL parameter utilities for SEO-friendly URLs
 
 export interface URLParams {
-  location?: string;
+  country?: string;
+  city?: string;
   start?: number;
   end?: number;
   artist?: string;
@@ -18,12 +19,12 @@ export const parseURLParams = (): URLParams => {
   const params: URLParams = {};
 
   // Parse location
-  const country = searchParams.get('country', '');
+  const country = searchParams.get('country');
   if (country) {
     params.country = decodeURIComponent(country);
   }
 
-  const city = searchParams.get('city', '');
+  const city = searchParams.get('city');
   if (city) {
     params.city = decodeURIComponent(city);
   }
@@ -98,9 +99,9 @@ export const updateURL = (params: URLParams, replace: boolean = false) => {
   // const newURL = `${window.location.pathname}${generateURLParams(params)}`;
   
   // if (replace) {
-  //   window.history.replaceState({}, '', newURL);
+  //   window.history.replaceState({}, newURL);
   // } else {
-  //   window.history.pushState({}, '', newURL);
+  //   window.history.pushState({}, newURL);
   // }
 };
 

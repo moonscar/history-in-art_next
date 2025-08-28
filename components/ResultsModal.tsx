@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Artwork } from '../types';
+import { Artwork, Location } from '../types';
 import { X, Filter, MapPin, Calendar, User, Palette, RotateCcw } from 'lucide-react';
 import ArtworkCard from './ArtworkCard';
 
 interface ResultsModalProps {
   artworks: Artwork[];
-  location?: string;
+  location?: Location;
   timeRange?: { start: number; end: number };
   onClose: () => void;
   onArtworkSelect: (artwork: Artwork) => void;
@@ -170,8 +170,6 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
 
         {/* Results */}
         <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 200px)' }}>
-          <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6333474665018049"
-               crossorigin="anonymous"></script>
           {filteredAndSortedArtworks.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-gray-700 rounded-full mx-auto mb-4 flex items-center justify-center">

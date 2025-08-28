@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Send, MessageCircle, Bot, User, ChevronDown, ChevronUp } from 'lucide-react';
 import { OpenAIService } from '../services/openaiService';
+import { Location } from '../types';
+
 
 interface Message {
   id: string;
