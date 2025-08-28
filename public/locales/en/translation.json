@@ -16,7 +16,7 @@
     "heatmapTitle": "Heatmap - Artwork Count",
     "noArtworks": "No artworks",
     "artworkCount": "{{count}} artwork",
-    "artworkCountPlural": "{{count}} artworks",
+    "artworkCountPlural": "{{range}} artworks",
     "totalCountries": "Total: {{count}} countries/regions with artworks",
     "maxCount": "Maximum: {{count}} artworks",
     "clickCountry": "Click countries to view artworks",

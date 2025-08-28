@@ -257,7 +257,7 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
         label = t("map.artworkCount", { count: start });
       } else {
         // label = start === end ? `${start} 件` : `${start}-${end} 件`;
-        label = start === end ? t("map.artworkCount", { count: start }) : t("map.artworkCount", { count: start - end});
+        label = start === end ? t("map.artworkCount", { range: `${start}` }) : t("map.artworkCount", { range: `${start} - ${end}`});
       }
       
       labels.push({
