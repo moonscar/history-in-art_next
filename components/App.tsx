@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import Link from 'next/link';
 import { Artwork, TimeRange, Location } from '@/types';
 import { useArtworks } from '@/hooks/useArtworks';
 import { parseURLParams, updateURL, getInitialStateFromURL } from '@/utils/urlParams';
@@ -311,16 +312,36 @@ function App() {
                 </div>
               </div>
               
+              {/* Navigation */}
+              <nav className="hidden md:flex items-center space-x-6" role="navigation">
+                <Link 
+                  href="/" 
+                  className="text-gray-300 hover:text-white transition-colors font-medium"
+                >
+                  {t('nav.explore')}
+                </Link>
+                <Link 
+                  href="/stories" 
+                  className="text-gray-300 hover:text-white transition-colors font-medium"
+                >
+                  {t('nav.stories')}
+                </Link>
+                <Link 
+                  href="/guide" 
+                  className="text-gray-300 hover:text-white transition-colors font-medium"
+                >
+                  {t('nav.guide')}
+                </Link>
+                <Link 
+                  href="/about" 
+                  className="text-gray-300 hover:text-white transition-colors font-medium"
+                >
+                  {t('nav.about')}
+                </Link>
+              </nav>
+
               <div className="flex items-center space-x-4 text-sm text-gray-300">
                 <LanguageSwitcher />
-                <div className="flex items-center">
-                  <Globe size={16} className="mr-1 text-blue-400" />
-                  {filteredArtworks.length} {t('header.artworksFound')}
-                </div>
-                <div className="flex items-center">
-                  <Clock size={16} className="mr-1 text-purple-400" />
-                  {t('header.timeRange', { start: timeRange.start, end: timeRange.end })}
-                </div>
                 {loading && (
                   <div className="flex items-center">
                     <div className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin mr-2"></div>

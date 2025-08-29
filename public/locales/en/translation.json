@@ -5,6 +5,12 @@
     "tagline": "Art as eyes, witness history",
     "description": "History-in-Art is an intelligent interactive platform that integrates global artworks with historical spatio-temporal exploration, designed to help users discover, research, and appreciate art in both geographical and temporal dimensions. Through interactive world maps and timeline browsing, users can explore paintings, sculptures, and other art forms across continents, countries, and cities from ancient civilizations to modern art, spanning thousands of years of history. The built-in AI art assistant focuses precisely on the chronological background and geographical distribution of works, enabling users to efficiently conduct spatio-temporal art exploration on maps and timelines. History-in-Art allows you to understand the historical background, creation stories, and cultural values of works in an immersive visual experience. Suitable for art enthusiasts, historians, educators, and those who wish to understand the world through art, it is an art navigation platform that combines learning, research, and inspiration discovery."
   },
+  "nav": {
+    "explore": "Explore",
+    "stories": "Discover",
+    "guide": "Guide",
+    "about": "About"
+  },
   "header": {
     "artworksFound": "artworks found",
     "updating": "Updating...",
