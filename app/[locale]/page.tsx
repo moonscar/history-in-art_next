@@ -3,7 +3,6 @@
 
 // import App from '@/components/App'
 import dynamic from 'next/dynamic'
-import I18nProvider from '@/components/I18nProvider'
 
 const App = dynamic(() => import('@/components/App'), {
   ssr: false
@@ -11,8 +10,6 @@ const App = dynamic(() => import('@/components/App'), {
 
 export default function HomePage() {
   return (
-    <I18nProvider>
-      <App />
-    </I18nProvider>
+    <App />
   )
 }

@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import {NextIntlClientProvider} from 'next-intl';
 import {notFound} from 'next/navigation';
-import './globals.css';
+import '../globals.css';
 import 'leaflet/dist/leaflet.css';
 
 
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: "Art as eyes, witness history",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
   params: {locale}
 }: Readonly<{
@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   let messages;
   try {
-    messages = import(`../public/locales/${locale}/translation.json`).default;
+    messages = (await import(`../../lib/locales/${locale}/translation.json`)).default;
   } catch (error) {
     notFound();
   }

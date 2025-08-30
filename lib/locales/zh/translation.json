@@ -14,22 +14,22 @@
   "header": {
     "artworksFound": "件艺术品",
     "updating": "更新中...",
-    "timeRange": "{{start}} - {{end}}"
+    "timeRange": "{start} - {end}"
   },
   "map": {
     "title": "交互式世界地图",
     "locations": "个地点",
     "heatmapTitle": "热力图 - 艺术品数量",
     "noArtworks": "无艺术品",
-    "artworkCount": "{{range}} 件",
-    "artworkCountPlural": "{{range}} 件",
-    "totalCountries": "总计: {{count}} 个国家/地区有艺术品",
-    "maxCount": "最大值: {{count}} 件",
+    "artworkCount": "{range} 件",
+    "artworkCountPlural": "{range} 件",
+    "totalCountries": "总计: {count} 个国家/地区有艺术品",
+    "maxCount": "最大值: {count} 件",
     "clickCountry": "点击国家查看艺术品",
     "clickMap": "点击地图显示城市 • 点击城市名查询艺术品",
     "viewArtworks": "查看艺术品",
     "queryLocation": "查询该地区艺术品",
-    "noArtworksFound": "在 {{city}}, {{country}} ({{start}}-{{end}}) 未找到艺术品",
+    "noArtworksFound": "在 {city}, {country} ({start}-{end}) 未找到艺术品",
     "clickedLocation": "点击的位置:",
     "hideHeatmap": "隐藏热力图",
     "showHeatmap": "显示热力图",
@@ -68,7 +68,7 @@
   },
   "results": {
     "title": "搜索结果",
-    "artworkCount": "{{count}} 件作品",
+    "artworkCount": "{count} 件作品",
     "filters": "筛选和排序",
     "reset": "重置",
     "movement": "艺术流派",

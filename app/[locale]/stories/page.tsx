@@ -3,16 +3,16 @@ import Link from 'next/link';
 import { BookOpen, Clock, MapPin, ArrowRight } from 'lucide-react';
 import { getAllStories, getStory, Story } from '@/lib/stories';
 import StoriesClient from '@/components/StoriesClient';
-// import {getTranslations} from 'next-intl/server';
+import {getTranslations, getLocale} from 'next-intl/server';
 
 
 interface StoriesPageProps {
   stories: Story[]
 }
 
-function StoriesPage({ stories }: StoriesPageProps) {
-  const t = useTranslation();
-  const currentLocale = i18n.language || 'zh';
+async function StoriesPage({ stories }: StoriesPageProps) {
+  const t = getTranslations();
+  const currentLocale = await getLocale();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
@@ -130,7 +130,7 @@ export default async function StoriesPageWrapper() {
 
   const stories = await Promise.all(
     slugs.map(async (slug) => {
-      const { realSlug, meta } = await getStory(slug, locale);
+      const { meta } = await getStory(slug, locale);
       return meta;
     })
   );

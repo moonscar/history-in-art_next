@@ -14,22 +14,22 @@
   "header": {
     "artworksFound": "artworks found",
     "updating": "Updating...",
-    "timeRange": "{{start}} - {{end}}"
+    "timeRange": "{start} - {end}"
   },
   "map": {
     "title": "Interactive World Map",
     "locations": "locations",
     "heatmapTitle": "Heatmap - Artwork Count",
     "noArtworks": "No artworks",
-    "artworkCount": "{{count}} artwork",
-    "artworkCountPlural": "{{range}} artworks",
-    "totalCountries": "Total: {{count}} countries/regions with artworks",
-    "maxCount": "Maximum: {{count}} artworks",
+    "artworkCount": "{range} artwork",
+    "artworkCountPlural": "{range} artworks",
+    "totalCountries": "Total: {count} countries/regions with artworks",
+    "maxCount": "Maximum: {count} artworks",
     "clickCountry": "Click countries to view artworks",
     "clickMap": "Click map to show cities • Click city names to query artworks",
     "viewArtworks": "View Artworks",
     "queryLocation": "Query artworks in this region",
-    "noArtworksFound": "No artworks found in {{city}}, {{country}} ({{start}}-{{end}})",
+    "noArtworksFound": "No artworks found in {city}, {country} ({start}-{end})",
     "clickedLocation": "Clicked location:",
     "hideHeatmap": "Hide heatmap",
     "showHeatmap": "Show heatmap",
@@ -68,7 +68,7 @@
   },
   "results": {
     "title": "Search Results",
-    "artworkCount": "{{count}} artworks",
+    "artworkCount": "{count} artworks",
     "filters": "Filters and Sorting",
     "reset": "Reset",
     "movement": "Art Movement",

@@ -3,11 +3,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Play, Map, Clock, MessageCircle, Search, Lightbulb } from 'lucide-react';
-import I18nProvider from '@/components/I18nProvider';
-import { useTranslation } from 'react-i18next';
+// import I18nProvider from '@/components/I18nProvider';
+import { useTranslations } from 'next-intl';
 
 function GuidePage() {
-  const { t } = useTranslation();
+  const t = useTranslations();
 
   const features = [
     {
@@ -214,8 +214,6 @@ function GuidePage() {
 
 export default function GuidePageWrapper() {
   return (
-    <I18nProvider>
-      <GuidePage />
-    </I18nProvider>
+    <GuidePage />
   );
 }
