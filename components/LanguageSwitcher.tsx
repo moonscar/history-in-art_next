@@ -1,13 +1,23 @@
+'use client';
+
 import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { Globe } from 'lucide-react';
+import {useTranslations, useLocale} from 'next-intl';
+import {Globe} from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 
 const LanguageSwitcher: React.FC = () => {
-  const { i18n, t } = useTranslation();
+  const t = useTranslations();
+  const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const toggleLanguage = () => {
-    const newLang = i18n.language === 'zh' ? 'en' : 'zh';
-    i18n.changeLanguage(newLang);
+    const newLang = locale === 'zh' ? 'en' : 'zh';
+    // ✅ 在 next-intl 里切换语言 = 切换到新 locale 的路由
+    const cleanPathname = pathname.startsWith(`/${locale}`) 
+      ? pathname.slice(`/${locale}`.length) 
+      : pathname;
+    router.push(`/${newLang}${cleanPathname || '/'}`);
   };
 
   return (
@@ -17,7 +27,7 @@ const LanguageSwitcher: React.FC = () => {
       title={t('language.switch')}
     >
       <Globe size={16} />
-      <span>{i18n.language === 'zh' ? 'EN' : '中文'}</span>
+      <span>{locale === 'zh' ? 'EN' : '中文'}</span>
     </button>
   );
 };

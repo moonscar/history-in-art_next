@@ -3,8 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { BookOpen, Clock, MapPin, ArrowRight } from 'lucide-react';
-import I18nProvider from '@/components/I18nProvider';
-import { useTranslation } from 'react-i18next';
+import {useTranslations, useLocale} from 'next-intl';
 import { Story } from '@/lib/stories';
 
 interface StoriesClientProps {
@@ -12,9 +11,9 @@ interface StoriesClientProps {
 }
 
 function StoriesPage({ stories }: StoriesClientProps) {
-  const { t, i18n } = useTranslation();
-  const currentLocale = i18n.language || 'zh';
-  console.log(stories);
+  const t = useTranslations();
+  const currentLocale = useLocale();
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
@@ -128,8 +127,6 @@ function StoriesPage({ stories }: StoriesClientProps) {
 
 export default function StoriesClient({ stories }: StoriesClientProps) {
   return (
-    <I18nProvider>
-      <StoriesPage stories={stories} />
-    </I18nProvider>
+    <StoriesPage stories={stories} />
   );
 }

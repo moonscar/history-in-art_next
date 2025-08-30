@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import { TimeRange, HistoricalPeriod } from '../types';
 import { historicalPeriods } from '../data/periods';
 
@@ -9,7 +9,7 @@ interface TimelineProps {
 }
 
 const Timeline: React.FC<TimelineProps> = ({ timeRange, onTimeRangeChange }) => {
-  const { t } = useTranslation();
+  const t = useTranslations();
   const [isDragging, setIsDragging] = useState<'start' | 'end' | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   
@@ -91,7 +91,7 @@ const Timeline: React.FC<TimelineProps> = ({ timeRange, onTimeRangeChange }) => 
                 minWidth: '60px'
               }}
             >
-              {t(`timeline.periods.${period.name}`, period.name)}
+              {t(`timeline.periods.${period.name}`, { fallback: period.name })}
             </div>
           ))}
           

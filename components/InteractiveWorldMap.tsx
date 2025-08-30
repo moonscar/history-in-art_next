@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { point } from '@turf/helpers';
@@ -114,25 +114,6 @@ const MapClickHandler: React.FC<{
   return null;
 };
 
-// Component to get country name from coordinates (simplified)
-// const getCountryFromCoordinates = (lat: number, lng: number): string => {
-//   try {
-//     const clickPoint = point([lng, lat]);
-
-//     // 在 worldCountries 数据中查找包含该点的国家
-//     for (const feature of worldCountries.features) {
-//       if (booleanPointInPolygon(clickPoint, feature)) {
-//         return feature.properties.NAME || feature.properties.name || 'Unknown';
-//       }
-//     }
-
-//     return 'Unknown Location';
-//   } catch (error) {
-//     console.error('Error in coordinate detection:', error);
-//     return 'Unknown Location';
-//   }
-// };
-
 // Get city name from coordinates
 const getCityFromCoordinates = async (lat: number, lng: number): Promise<string> => {
   try {
@@ -153,7 +134,7 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
   onLocationTimeSelect,
   onArtworkSelect
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations();
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [countryCounts, setCountryCounts] = useState<{ [country: string]: number }>({});
@@ -254,7 +235,7 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
       let label: string;
       if (i === breakpoints.length - 1) {
         // label = `${start}+ 件`;
-        label = t("map.artworkCount", { count: start });
+        label = t("map.artworkCount", { range: start });
       } else {
         // label = start === end ? `${start} 件` : `${start}-${end} 件`;
         label = start === end ? t("map.artworkCount", { range: `${start}` }) : t("map.artworkCount", { range: `${start} - ${end}`});

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import { Send, MessageCircle, Bot, User, ChevronDown, ChevronUp } from 'lucide-react';
 import { OpenAIService } from '../services/openaiService';
 import { Location } from '../types';
@@ -23,7 +23,7 @@ interface ChatInterfaceProps {
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ onQueryUpdate, onLocationTimeUpdate }) => {
-  const { t } = useTranslation();
+  const t = useTranslations();
   const [isExpanded, setIsExpanded] = useState(true);
   const [messages, setMessages] = useState<Message[]>([
     {

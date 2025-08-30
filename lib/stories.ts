@@ -12,9 +12,9 @@ export type Story = {
   title: string;
   author?: string;
   excerpt?: string;
+  description?: string;
   date?: string;
   image?: string;
-  excerpt?: string;
   location?: string;
   period?: string;
   readTime?: string;

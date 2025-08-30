@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import { Artwork, TimeRange, Location } from '@/types';
 import { useArtworks } from '@/hooks/useArtworks';
@@ -17,7 +17,6 @@ import Timeline from '@/components/Timeline';
 import ArtworkModal from '@/components/ArtworkModal';
 import ChatInterface from '@/components/ChatInterface';
 import ResultsModal from '@/components/ResultsModal';
-import I18nProvider from '@/components/I18nProvider';
 import { Globe, Clock, Palette, AlertCircle } from 'lucide-react';
 
 import dynamic from 'next/dynamic';
@@ -28,7 +27,8 @@ const InteractiveWorldMap = dynamic(() => import('@/components/InteractiveWorldM
 
 
 function App() {
-  const { t, i18n } = useTranslation();
+  const t = useTranslations();
+  const locale = useLocale();
   const initialState = getInitialStateFromURL();
   const [timeRange, setTimeRange] = useState<TimeRange>(initialState.timeRange);
   const [selectedArtwork, setSelectedArtwork] = useState<Artwork | null>(null);
@@ -166,7 +166,7 @@ function App() {
   const generateDynamicSEO = () => {
     let title = t('site.title');
     let description = t('site.description');
-    let keywords = i18n.language === 'zh' 
+    let keywords = locale === 'zh' 
       ? "艺术品,艺术导航,世界艺术,历史艺术,艺术地图,艺术时间轴,文艺复兴,巴洛克,印象派,现代艺术"
       : "artwork,art navigation,world art,historical art,art map,art timeline,renaissance,baroque,impressionism,modern art";
     let robots = "index, follow";
@@ -178,7 +178,7 @@ function App() {
       if (chatQuery.artist) filters.push(chatQuery.artist);
       
       const siteName = t('site.name');
-      if (i18n.language === 'zh') {
+      if (locale === 'zh') {
         title = `${filters.join(' ')} 艺术作品 | ${siteName}`;
         description = `探索${filters.join('、')}相关的艺术作品，发现${timeRange.start}-${timeRange.end}年间的艺术珍品。`;
       } else {
@@ -188,7 +188,7 @@ function App() {
       keywords = `${filters.join(',')},${keywords}`;
     } else if (timeRange.start !== 1400 || timeRange.end !== 2024) {
       const siteName = t('site.name');
-      if (i18n.language === 'zh') {
+      if (locale === 'zh') {
         title = `${timeRange.start}-${timeRange.end}年艺术作品 | ${siteName}`;
         description = `探索${timeRange.start}-${timeRange.end}年间的世界艺术作品，通过交互式地图和时间轴发现历史艺术珍品。`;
       } else {
@@ -209,19 +209,19 @@ function App() {
   
   // Generate breadcrumb data
   const breadcrumbItems = [
-    { name: i18n.language === 'zh' ? "首页" : "Home", url: "https://history-in-art.org" }
+    { name: locale === 'zh' ? "首页" : "Home", url: "https://history-in-art.org" }
   ];
   
   if (chatQuery.location) {
     breadcrumbItems.push({ 
-      name: i18n.language === 'zh' ? `${chatQuery.location.country}艺术品` : `${chatQuery.location.country} Artworks`, 
+      name: locale === 'zh' ? `${chatQuery.location.country}艺术品` : `${chatQuery.location.country} Artworks`, 
       url: `https://history-in-art.org?country=${encodeURIComponent(chatQuery.location.country)}` 
     });
   }
   
   if (timeRange.start !== 1400 || timeRange.end !== 2024) {
     breadcrumbItems.push({ 
-      name: `${timeRange.start}-${timeRange.end}${i18n.language === 'zh' ? '年' : ''}`, 
+      name: `${timeRange.start}-${timeRange.end}${locale === 'zh' ? '年' : ''}`, 
       url: `https://history-in-art.org?start=${timeRange.start}&end=${timeRange.end}` 
     });
   }
@@ -247,7 +247,7 @@ function App() {
           keywords={keywords} 
           structuredData={websiteData}
           robots="noindex, nofollow"
-          currentLanguage={i18n.language}
+          currentLanguage={locale}
         />
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
           <div className="text-center">
@@ -270,7 +270,7 @@ function App() {
           keywords={keywords} 
           structuredData={websiteData}
           robots="noindex, nofollow"
-          currentLanguage={i18n.language}
+          currentLanguage={locale}
         />
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
           <div className="text-center max-w-md">
@@ -295,7 +295,7 @@ function App() {
         structuredData={allStructuredData}
         robots={robots}
         hreflang={hreflangLinks}
-        currentLanguage={i18n.language}
+        currentLanguage={locale}
       />
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
         {/* Header */}
