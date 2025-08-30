@@ -1,18 +1,20 @@
+'use client'
+
 import React from 'react';
 import Link from 'next/link';
 import { BookOpen, Clock, MapPin, ArrowRight } from 'lucide-react';
-import { getAllStories, getStory, Story } from '@/lib/stories';
-import StoriesClient from '@/components/StoriesClient';
-// import {getTranslations} from 'next-intl/server';
+import I18nProvider from '@/components/I18nProvider';
+import { useTranslation } from 'react-i18next';
+import { Story } from '@/lib/stories';
 
-
-interface StoriesPageProps {
+interface StoriesClientProps {
   stories: Story[]
 }
 
-function StoriesPage({ stories }: StoriesPageProps) {
-  const t = useTranslation();
+function StoriesPage({ stories }: StoriesClientProps) {
+  const { t, i18n } = useTranslation();
   const currentLocale = i18n.language || 'zh';
+  console.log(stories);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
@@ -124,16 +126,10 @@ function StoriesPage({ stories }: StoriesPageProps) {
   );
 }
 
-export default async function StoriesPageWrapper() {
-  const locale = "zh";
-  const slugs = getAllStories(locale);
-
-  const stories = await Promise.all(
-    slugs.map(async (slug) => {
-      const { realSlug, meta } = await getStory(slug, locale);
-      return meta;
-    })
+export default function StoriesClient({ stories }: StoriesClientProps) {
+  return (
+    <I18nProvider>
+      <StoriesPage stories={stories} />
+    </I18nProvider>
   );
-
-  return <StoriesClient stories={stories} />;
 }
