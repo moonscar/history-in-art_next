@@ -2,14 +2,19 @@ import React from 'react';
 import { Artwork } from '../types';
 import SEOHead from './SEOHead';
 import { generateArtworkStructuredData } from '../utils/structuredData';
-import { X, MapPin, Calendar, User, Palette, Image } from 'lucide-react';
+import { X, MapPin, Calendar, User, Palette, Image, Heart } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+
 
 interface ArtworkModalProps {
   artwork: Artwork | null;
   onClose: () => void;
+  onAddToGallery?: (artwork: Artwork) => void;
 }
 
-const ArtworkModal: React.FC<ArtworkModalProps> = ({ artwork, onClose }) => {
+const ArtworkModal: React.FC<ArtworkModalProps> = ({ artwork, onClose, onAddToGallery }) => {
+  const t = useTranslations();
+
   if (!artwork) return null;
 
   const artworkSEO = {
@@ -119,12 +124,24 @@ const ArtworkModal: React.FC<ArtworkModalProps> = ({ artwork, onClose }) => {
               </div>
               
               <div className="pt-4 border-t border-gray-700">
-                <button 
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-6 rounded-lg font-medium transition-all duration-300 transform hover:scale-105"
-                  onClick={() => window.open(`https://artsandculture.google.com/search?q=${encodeURIComponent(artwork.title + ' ' + artwork.artist)}`, '_blank')}
-                >
-                  在 Google Arts & Culture 中查看
-                </button>
+                <div className="space-y-3">
+                  {onAddToGallery && (
+                    <button
+                      onClick={() => onAddToGallery(artwork)}
+                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 px-6 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+                    >
+                      <Heart size={18} className="mr-2" />
+                      {t('gallery.addToGallery')}
+                    </button>
+                  )}
+                  
+                  <button 
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-6 rounded-lg font-medium transition-all duration-300 transform hover:scale-105"
+                    onClick={() => window.open(`https://artsandculture.google.com/search?q=${encodeURIComponent(artwork.title + ' ' + artwork.artist)}`, '_blank')}
+                  >
+                    {t('artwork.viewInGoogle')}
+                  </button>
+                </div>
               </div>
             </section>
           </div>

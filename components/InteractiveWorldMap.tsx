@@ -25,6 +25,7 @@ interface InteractiveWorldMapProps {
   timeRange: TimeRange;
   onLocationTimeSelect: (location: Location, timeRange: TimeRange) => void;
   onArtworkSelect: (artwork: Artwork) => void;
+  onAddToGallery?: (artwork: Artwork) => void;
 }
 
 // Custom marker icons for different periods
@@ -114,6 +115,25 @@ const MapClickHandler: React.FC<{
   return null;
 };
 
+// Component to get country name from coordinates (simplified)
+// const getCountryFromCoordinates = (lat: number, lng: number): string => {
+//   try {
+//     const clickPoint = point([lng, lat]);
+
+//     // 在 worldCountries 数据中查找包含该点的国家
+//     for (const feature of worldCountries.features) {
+//       if (booleanPointInPolygon(clickPoint, feature)) {
+//         return feature.properties.NAME || feature.properties.name || 'Unknown';
+//       }
+//     }
+
+//     return 'Unknown Location';
+//   } catch (error) {
+//     console.error('Error in coordinate detection:', error);
+//     return 'Unknown Location';
+//   }
+// };
+
 // Get city name from coordinates
 const getCityFromCoordinates = async (lat: number, lng: number): Promise<string> => {
   try {
@@ -132,7 +152,8 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
   artworks,
   timeRange,
   onLocationTimeSelect,
-  onArtworkSelect
+  onArtworkSelect,
+  onAddToGallery
 }) => {
   const t = useTranslations();
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -321,10 +342,18 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
       onLocationTimeSelect(location, timeRange);
     };
 
+    // Add global function for adding artwork to gallery from popup
+    (window as any).addArtworkToGallery = (artworkId: string) => {
+      const artwork = artworks.find(a => a.id === artworkId);
+      if (artwork && onAddToGallery) {
+        onAddToGallery(artwork);
+      }
+    };
     return () => {
       delete (window as any).queryCountry;
+      delete (window as any).addArtworkToGallery;
     };
-  }, [onLocationTimeSelect, timeRange]);
+  }, [onLocationTimeSelect, timeRange, artworks, onAddToGallery]);
 
   // Group artworks by location to create clusters
   const artworksByLocation = artworks.reduce((acc, artwork) => {
@@ -552,14 +581,14 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
                           <div
                             key={artwork.id}
                             className="flex items-start space-x-3 p-2 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors"
-                            onClick={() => onArtworkSelect(artwork)}
                           >
                             <img
                               src={artwork.imageUrl}
                               alt={artwork.title}
                               className="w-12 h-12 object-cover rounded"
+                              onClick={() => onArtworkSelect(artwork)}
                             />
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0" onClick={() => onArtworkSelect(artwork)}>
                               <h4 className="font-medium text-white text-sm truncate">
                                 {artwork.title}
                               </h4>
@@ -572,6 +601,20 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
                                 {artwork.year} • {artwork.period}
                               </div>
                             </div>
+                            
+                            {/* Add to Gallery Button in Popup */}
+                            {onAddToGallery && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onAddToGallery(artwork);
+                                }}
+                                className="w-6 h-6 bg-green-600 hover:bg-green-700 text-white rounded-full flex items-center justify-center transition-colors flex-shrink-0"
+                                title={t('gallery.addToGallery')}
+                              >
+                                <span className="text-xs font-bold leading-none">+</span>
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>

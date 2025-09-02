@@ -9,6 +9,7 @@ interface ResultsModalProps {
   timeRange?: { start: number; end: number };
   onClose: () => void;
   onArtworkSelect: (artwork: Artwork) => void;
+  onAddToGallery?: (artwork: Artwork) => void;
 }
 
 const ResultsModal: React.FC<ResultsModalProps> = ({
@@ -16,7 +17,8 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
   location,
   timeRange,
   onClose,
-  onArtworkSelect
+  onArtworkSelect,
+  onAddToGallery
 }) => {
   const [selectedMovement, setSelectedMovement] = useState('All Movements');
   const [selectedArtist, setSelectedArtist] = useState('All Artists');
@@ -187,6 +189,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
                   key={artwork.id}
                   artwork={artwork}
                   onClick={() => onArtworkSelect(artwork)}
+                  onAddToGallery={onAddToGallery}
                 />
               ))}
             </div>

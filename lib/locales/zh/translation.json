@@ -14,7 +14,9 @@
   "header": {
     "artworksFound": "件艺术品",
     "updating": "更新中...",
-    "timeRange": "{start} - {end}"
+    "timeRange": "{start} - {end}",
+    "viewGallery": "查看画廊",
+    "gallery": "画廊"
   },
   "map": {
     "title": "交互式世界地图",
@@ -105,5 +107,22 @@
     "switch": "切换语言",
     "chinese": "中文",
     "english": "English"
+  },
+  "gallery": {
+    "title": "我的艺术画廊",
+    "count": "{count} 件收藏",
+    "addToGallery": "添加到画廊",
+    "removeArtwork": "从画廊移除",
+    "clearGallery": "清空画廊",
+    "confirmClear": "确定要清空画廊吗？此操作无法撤销。",
+    "emptyTitle": "画廊是空的",
+    "emptyMessage": "您的画廊目前是空的。在浏览艺术品时点击 + 按钮来添加您喜欢的作品到画廊中。",
+    "sortBy": "排序方式",
+    "sortByYear": "按年代",
+    "sortByTitle": "按标题",
+    "sortByArtist": "按艺术家",
+    "sortByDateAdded": "按添加时间",
+    "totalArtworks": "共 {count} 件作品",
+    "close": "关闭画廊"
   }
 }

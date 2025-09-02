@@ -17,7 +17,8 @@ import Timeline from '@/components/Timeline';
 import ArtworkModal from '@/components/ArtworkModal';
 import ChatInterface from '@/components/ChatInterface';
 import ResultsModal from '@/components/ResultsModal';
-import { Globe, Clock, Palette, AlertCircle } from 'lucide-react';
+import GalleryModal from '@/components/GalleryModal';
+import { Globe, Clock, Palette, AlertCircle, Heart } from 'lucide-react';
 
 import dynamic from 'next/dynamic';
 
@@ -33,6 +34,8 @@ function App() {
   const [timeRange, setTimeRange] = useState<TimeRange>(initialState.timeRange);
   const [selectedArtwork, setSelectedArtwork] = useState<Artwork | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
+  const [galleryArtworks, setGalleryArtworks] = useState<Artwork[]>([]);
   const [resultsData, setResultsData] = useState<{
     artworks: Artwork[];
     location?: Location;
@@ -160,6 +163,25 @@ function App() {
     } catch (error) {
       console.error('Error fetching location artworks:', error);
     }
+  };
+
+  // Gallery functions
+  const handleAddToGallery = (artwork: Artwork) => {
+    setGalleryArtworks(prev => {
+      // Check if artwork already exists in gallery
+      if (prev.some(item => item.id === artwork.id)) {
+        return prev; // Don't add duplicates
+      }
+      return [...prev, artwork];
+    });
+  };
+
+  const handleRemoveFromGallery = (artworkId: string) => {
+    setGalleryArtworks(prev => prev.filter(artwork => artwork.id !== artworkId));
+  };
+
+  const handleClearGallery = () => {
+    setGalleryArtworks([]);
   };
 
   // Generate dynamic SEO data based on current state
@@ -311,7 +333,7 @@ function App() {
                   <p className="text-gray-300 text-sm">{t('site.tagline')}</p>
                 </div>
               </div>
-              
+
               {/* Navigation */}
               <nav className="hidden md:flex items-center space-x-6" role="navigation">
                 <Link 
@@ -353,6 +375,21 @@ function App() {
                     {chatQuery.location.country}
                   </div>
                 )}
+                
+                {/* Gallery Button */}
+                <button
+                  onClick={() => setShowGalleryModal(true)}
+                  className="relative flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white rounded-lg transition-all duration-200 transform hover:scale-105"
+                  title={t('header.viewGallery')}
+                >
+                  <Heart size={16} />
+                  <span className="text-sm font-medium">{t('header.gallery')}</span>
+                  {galleryArtworks.length > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                      {galleryArtworks.length}
+                    </span>
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -368,6 +405,7 @@ function App() {
               timeRange={timeRange}
               onLocationTimeSelect={handleLocationTimeSelect}
               onArtworkSelect={setSelectedArtwork}
+              onAddToGallery={handleAddToGallery}
             />
             
             {/* Floating Timeline */}
@@ -395,6 +433,18 @@ function App() {
               timeRange={resultsData.timeRange}
               onClose={handleResultsClose}
               onArtworkSelect={setSelectedArtwork}
+              onAddToGallery={handleAddToGallery}
+            />
+          )}
+
+          {/* Gallery Modal */}
+          {showGalleryModal && (
+            <GalleryModal
+              artworks={galleryArtworks}
+              onClose={() => setShowGalleryModal(false)}
+              onRemoveArtwork={handleRemoveFromGallery}
+              onClearGallery={handleClearGallery}
+              onArtworkSelect={setSelectedArtwork}
             />
           )}
 
@@ -402,6 +452,7 @@ function App() {
           <ArtworkModal
             artwork={selectedArtwork}
             onClose={() => setSelectedArtwork(null)}
+            onAddToGallery={handleAddToGallery}
           />
         </main>
 

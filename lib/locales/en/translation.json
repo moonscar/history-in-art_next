@@ -14,7 +14,9 @@
   "header": {
     "artworksFound": "artworks found",
     "updating": "Updating...",
-    "timeRange": "{start} - {end}"
+    "timeRange": "{start} - {end}",
+    "viewGallery": "View Gallery",
+    "gallery": "Gallery"
   },
   "map": {
     "title": "Interactive World Map",
@@ -105,5 +107,23 @@
     "switch": "Switch Language",
     "chinese": "中文",
     "english": "English"
+  },
+  "gallery": {
+    "title": "My Art Gallery",
+    "count": "{{count}} artworks",
+    "addToGallery": "Add to Gallery",
+    "removeArtwork": "Remove from Gallery",
+    "clearGallery": "Clear Gallery",
+    "confirmClear": "Are you sure you want to clear the gallery? This action cannot be undone.",
+    "emptyTitle": "Gallery is Empty",
+    "emptyMessage": "Your gallery is currently empty. Click the + button while browsing artworks to add your favorite pieces to your collection.",
+    "sortBy": "Sort By",
+    "sortByYear": "By Year",
+    "sortByTitle": "By Title",
+    "sortByArtist": "By Artist",
+    "sortByDateAdded": "By Date Added",
+    "totalArtworks": "Total {count} artworks",
+    "close": "Close Gallery"
   }
+
 }

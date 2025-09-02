@@ -1,20 +1,48 @@
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { Artwork } from '../types';
 import { MapPin, Calendar, User, Palette } from 'lucide-react';
 
 interface ArtworkCardProps {
   artwork: Artwork;
   onClick: () => void;
+  onAddToGallery?: (artwork: Artwork) => void;
+  showAddButton?: boolean;
 }
 
-const ArtworkCard: React.FC<ArtworkCardProps> = ({ artwork, onClick }) => {
+const ArtworkCard: React.FC<ArtworkCardProps> = ({ 
+  artwork, 
+  onClick, 
+  onAddToGallery, 
+  showAddButton = true 
+}) => {
+  const t = useTranslations();
+
+  const handleAddToGallery = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onAddToGallery) {
+      onAddToGallery(artwork);
+    }
+  };
+
   return (
     <article 
-      className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:-translate-y-2 group"
+      className="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:-translate-y-2 group"
       onClick={onClick}
       itemScope
       itemType="https://schema.org/VisualArtwork"
     >
+      {/* Add to Gallery Button */}
+      {onAddToGallery && showAddButton && (
+        <button
+          onClick={handleAddToGallery}
+          className="absolute top-3 left-3 w-8 h-8 bg-green-600 hover:bg-green-700 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg z-10"
+          title={t('gallery.addToGallery')}
+        >
+          <span className="text-lg font-bold leading-none">+</span>
+        </button>
+      )}
+      
       <figure className="relative overflow-hidden">
         <img 
           src={artwork.imageUrl} 
