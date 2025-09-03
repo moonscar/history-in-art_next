@@ -5,6 +5,7 @@ import {notFound} from 'next/navigation';
 import '../globals.css';
 import 'leaflet/dist/leaflet.css';
 import { Analytics } from '@vercel/analytics/next';
+import Script from 'next/script';
 
 
 export const metadata: Metadata = {
@@ -33,6 +34,12 @@ export default async function RootLayout({
           {children}
           <Analytics />
         </NextIntlClientProvider>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6333474665018049"
+          crossOrigin="anonymous" // 2. Correct attribute name to `crossOrigin`
+          strategy="lazyOnload" // 3. Use `strategy` prop for better performance
+        />
       </body>
     </html>
   );
