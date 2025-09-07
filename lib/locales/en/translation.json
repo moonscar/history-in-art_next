@@ -110,7 +110,7 @@
   },
   "gallery": {
     "title": "My Art Gallery",
-    "count": "{{count}} artworks",
+    "count": "{count} artworks", 
     "addToGallery": "Add to Gallery",
     "removeArtwork": "Remove from Gallery",
     "clearGallery": "Clear Gallery",

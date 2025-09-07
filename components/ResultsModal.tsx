@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Artwork, Location } from '../types';
 import { X, Filter, MapPin, Calendar, User, Palette, RotateCcw } from 'lucide-react';
 import ArtworkCard from './ArtworkCard';
@@ -20,6 +21,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
   onArtworkSelect,
   onAddToGallery
 }) => {
+  const t = useTranslations();
   const [selectedMovement, setSelectedMovement] = useState('All Movements');
   const [selectedArtist, setSelectedArtist] = useState('All Artists');
   const [sortBy, setSortBy] = useState('year');
@@ -72,7 +74,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <div>
-            <h2 className="text-2xl font-bold text-white mb-2">搜索结果</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">{t('results.title')}</h2>
             <div className="flex items-center space-x-4 text-sm text-gray-300">
               {location && (
                 <div className="flex items-center">
@@ -90,7 +92,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
                 </div>
               )}
               <div className="bg-green-600 text-white px-2 py-1 rounded-full text-xs">
-                {filteredAndSortedArtworks.length} 件作品
+                {t('results.artworkCount', { count: filteredAndSortedArtworks.length })}
               </div>
             </div>
           </div>
@@ -107,21 +109,21 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <Filter size={18} className="mr-2 text-orange-400" />
-              <h3 className="text-white font-medium">筛选和排序</h3>
+              <h3 className="text-white font-medium">{t('results.filters')}</h3>
             </div>
             <button
               onClick={handleResetFilters}
               className="flex items-center px-3 py-1 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors text-sm"
             >
               <RotateCcw size={14} className="mr-1" />
-              重置
+              {t('results.reset')}
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                艺术流派
+                {t('results.movement')}
               </label>
               <select
                 value={selectedMovement}
@@ -138,7 +140,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                艺术家
+                {t('results.artist')}
               </label>
               <select
                 value={selectedArtist}
@@ -155,16 +157,16 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                排序方式
+                {t('results.sortBy')}
               </label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="w-full bg-gray-800 text-white border border-gray-700 rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none"
               >
-                <option value="year">按年代</option>
-                <option value="title">按标题</option>
-                <option value="artist">按艺术家</option>
+                <option value="year">{t('results.sortByYear')}</option>
+                <option value="title">{t('results.sortByTitle')}</option>
+                <option value="artist">{t('results.sortByArtist')}</option>
               </select>
             </div>
           </div>
@@ -177,9 +179,9 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
               <div className="w-16 h-16 bg-gray-700 rounded-full mx-auto mb-4 flex items-center justify-center">
                 <Palette size={24} className="text-gray-500" />
               </div>
-              <h3 className="text-lg font-medium text-gray-400 mb-2">未找到匹配的艺术品</h3>
+              <h3 className="text-lg font-medium text-gray-400 mb-2">{t('results.noResults')}</h3>
               <p className="text-gray-500 text-sm">
-                请尝试调整筛选条件或重新搜索。
+                {t('results.noResultsDesc')}
               </p>
             </div>
           ) : (
