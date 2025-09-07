@@ -3,6 +3,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import { Artwork, TimeRange, Location } from '@/types';
 import { useArtworks } from '@/hooks/useArtworks';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { parseURLParams, updateURL, getInitialStateFromURL } from '@/utils/urlParams';
 import SEOHead from '@/components/SEOHead';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
@@ -36,6 +37,15 @@ function App() {
   const [showResults, setShowResults] = useState(false);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [galleryArtworks, setGalleryArtworks] = useState<Artwork[]>([]);
+  
+  // 使用 localStorage 持久化画廊数据
+  const [persistedGallery, setPersistedGallery] = useLocalStorage<Artwork[]>('artGallery', []);
+  
+  // 初始化时从 localStorage 加载画廊数据
+  useEffect(() => {
+    setGalleryArtworks(persistedGallery);
+  }, [persistedGallery]);
+
   const [resultsData, setResultsData] = useState<{
     artworks: Artwork[];
     location?: Location;
@@ -148,7 +158,9 @@ function App() {
     setShowResults(false);
     setChatQuery({ timeRange: timeRange });
     setTimeRange({ start: 1400, end: 2024 });
-    // window.history.replaceState({}, '', window.location.pathname);
+    
+    // 更新 URL，移除查询参数
+    updateURL({}, true);
   };
 
   const handleLocationTimeSelect = async (location: Location, currentTimeRange: TimeRange) => {
@@ -167,21 +179,27 @@ function App() {
 
   // Gallery functions
   const handleAddToGallery = (artwork: Artwork) => {
-    setGalleryArtworks(prev => {
+    const updateGallery = (prev: Artwork[]) => {
       // Check if artwork already exists in gallery
       if (prev.some(item => item.id === artwork.id)) {
         return prev; // Don't add duplicates
       }
       return [...prev, artwork];
-    });
+    };
+    
+    setGalleryArtworks(updateGallery);
+    setPersistedGallery(updateGallery);
   };
 
   const handleRemoveFromGallery = (artworkId: string) => {
-    setGalleryArtworks(prev => prev.filter(artwork => artwork.id !== artworkId));
+    const updateGallery = (prev: Artwork[]) => prev.filter(artwork => artwork.id !== artworkId);
+    setGalleryArtworks(updateGallery);
+    setPersistedGallery(updateGallery);
   };
 
   const handleClearGallery = () => {
     setGalleryArtworks([]);
+    setPersistedGallery([]);
   };
 
   // Generate dynamic SEO data based on current state
@@ -199,6 +217,16 @@ function App() {
       if (chatQuery.movement) filters.push(chatQuery.movement);
       if (chatQuery.artist) filters.push(chatQuery.artist);
       
+      // 更新 URL 参数
+      updateURL({
+        country: chatQuery.location?.country,
+        city: chatQuery.location?.city,
+        start: timeRange.start !== 1400 ? timeRange.start : undefined,
+        end: timeRange.end !== 2024 ? timeRange.end : undefined,
+        artist: chatQuery.artist,
+        movement: chatQuery.movement
+      });
+      
       const siteName = t('site.name');
       if (locale === 'zh') {
         title = `${filters.join(' ')} 艺术作品 | ${siteName}`;
@@ -209,6 +237,12 @@ function App() {
       }
       keywords = `${filters.join(',')},${keywords}`;
     } else if (timeRange.start !== 1400 || timeRange.end !== 2024) {
+      // 更新 URL 参数
+      updateURL({
+        start: timeRange.start !== 1400 ? timeRange.start : undefined,
+        end: timeRange.end !== 2024 ? timeRange.end : undefined
+      });
+      
       const siteName = t('site.name');
       if (locale === 'zh') {
         title = `${timeRange.start}-${timeRange.end}年艺术作品 | ${siteName}`;
@@ -217,6 +251,9 @@ function App() {
         title = `${timeRange.start}-${timeRange.end} Artworks | ${siteName}`;
         description = `Explore world artworks from ${timeRange.start}-${timeRange.end}, discover historical art treasures through interactive maps and timelines.`;
       }
+    } else {
+      // 如果没有特殊筛选条件，清除 URL 参数
+      updateURL({}, true);
     }
     
     return { title, description, keywords, robots };
