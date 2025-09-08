@@ -1,30 +1,56 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { Artwork } from '../types';
-import { MapPin, Calendar, User, Palette } from 'lucide-react';
+import { MapPin, Calendar, User, Palette, Check, Heart } from 'lucide-react';
 
 interface ArtworkCardProps {
   artwork: Artwork;
   onClick: () => void;
   onAddToGallery?: (artwork: Artwork) => void;
   showAddButton?: boolean;
+  isAddedToGallery?: boolean;
 }
 
 const ArtworkCard: React.FC<ArtworkCardProps> = ({ 
   artwork, 
   onClick, 
   onAddToGallery, 
-  showAddButton = true 
+  showAddButton = true,
+  isAddedToGallery = false
 }) => {
   const t = useTranslations();
+  const [showAddedFeedback, setShowAddedFeedback] = React.useState(false);
 
   const handleAddToGallery = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onAddToGallery) {
+    if (onAddToGallery && !isAddedToGallery && !showAddedFeedback) {
       onAddToGallery(artwork);
+      setShowAddedFeedback(true);
+      setTimeout(() => {
+        setShowAddedFeedback(false);
+      }, 1500);
     }
   };
 
+  const getButtonStyle = () => {
+    if (isAddedToGallery) {
+      return "bg-pink-600 hover:bg-pink-700";
+    }
+    if (showAddedFeedback) {
+      return "bg-green-500 hover:bg-green-600 scale-110";
+    }
+    return "bg-green-600 hover:bg-green-700";
+  };
+
+  const getButtonIcon = () => {
+    if (isAddedToGallery) {
+      return <Heart size={16} className="fill-current" />;
+    }
+    if (showAddedFeedback) {
+      return <Check size={16} />;
+    }
+    return <span className="text-lg font-bold leading-none">+</span>;
+  };
   return (
     <article 
       className="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:-translate-y-2 group"
@@ -36,10 +62,11 @@ const ArtworkCard: React.FC<ArtworkCardProps> = ({
       {onAddToGallery && showAddButton && (
         <button
           onClick={handleAddToGallery}
-          className="absolute top-3 left-3 w-8 h-8 bg-green-600 hover:bg-green-700 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg z-10"
-          title={t('gallery.addToGallery')}
+          className={`absolute top-3 left-3 w-8 h-8 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg z-10 ${getButtonStyle()}`}
+          title={isAddedToGallery ? t('gallery.alreadyInGallery') : t('gallery.addToGallery')}
+          disabled={showAddedFeedback}
         >
-          <span className="text-lg font-bold leading-none">+</span>
+          {getButtonIcon()}
         </button>
       )}
       

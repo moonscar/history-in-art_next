@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { Artwork, Location } from '../types';
-import { X, Filter, MapPin, Calendar, User, Palette, RotateCcw } from 'lucide-react';
+import { X, Filter, MapPin, Calendar, User, Palette, RotateCcw, RefreshCw } from 'lucide-react';
 import ArtworkCard from './ArtworkCard';
 
 interface ResultsModalProps {
@@ -11,6 +11,8 @@ interface ResultsModalProps {
   onClose: () => void;
   onArtworkSelect: (artwork: Artwork) => void;
   onAddToGallery?: (artwork: Artwork) => void;
+  onTimeRangeChange?: (start: number, end: number) => void;
+  galleryArtworkIds?: Set<string>;
 }
 
 const ResultsModal: React.FC<ResultsModalProps> = ({
@@ -19,13 +21,25 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
   timeRange,
   onClose,
   onArtworkSelect,
-  onAddToGallery
+  onAddToGallery,
+  onTimeRangeChange,
+  galleryArtworkIds = new Set()
 }) => {
   const t = useTranslations();
   const [selectedMovement, setSelectedMovement] = useState('All Movements');
   const [selectedArtist, setSelectedArtist] = useState('All Artists');
   const [sortBy, setSortBy] = useState('year');
+  const [startYear, setStartYear] = useState(timeRange?.start || 1400);
+  const [endYear, setEndYear] = useState(timeRange?.end || 2024);
+  const [isApplyingTimeRange, setIsApplyingTimeRange] = useState(false);
 
+  // 当 timeRange prop 变化时更新本地状态
+  React.useEffect(() => {
+    if (timeRange) {
+      setStartYear(timeRange.start);
+      setEndYear(timeRange.end);
+    }
+  }, [timeRange]);
   // 获取可用的筛选选项
   const movements = useMemo(() => {
     const uniqueMovements = [...new Set(artworks.map(a => a.movement))];
@@ -66,8 +80,36 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
     setSelectedMovement('All Movements');
     setSelectedArtist('All Artists');
     setSortBy('year');
+    if (timeRange) {
+      setStartYear(timeRange.start);
+      setEndYear(timeRange.end);
+    }
   };
 
+  const handleApplyTimeRange = async () => {
+    if (onTimeRangeChange && (startYear !== timeRange?.start || endYear !== timeRange?.end)) {
+      setIsApplyingTimeRange(true);
+      try {
+        await onTimeRangeChange(startYear, endYear);
+      } finally {
+        setIsApplyingTimeRange(false);
+      }
+    }
+  };
+
+  const handleStartYearChange = (value: string) => {
+    const year = parseInt(value);
+    if (!isNaN(year) && year >= -3000 && year <= 2024) {
+      setStartYear(Math.min(year, endYear - 1));
+    }
+  };
+
+  const handleEndYearChange = (value: string) => {
+    const year = parseInt(value);
+    if (!isNaN(year) && year >= -3000 && year <= 2024) {
+      setEndYear(Math.max(year, startYear + 1));
+    }
+  };
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
       <div className="bg-gray-900 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
@@ -85,12 +127,42 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
                   }
                 </div>
               )}
-              {timeRange && (
+              <div className="flex items-center space-x-2">
                 <div className="flex items-center">
                   <Calendar size={16} className="mr-1 text-purple-400" />
-                  {timeRange.start} - {timeRange.end}
+                  <input
+                    type="number"
+                    value={startYear}
+                    onChange={(e) => handleStartYearChange(e.target.value)}
+                    className="w-16 bg-gray-800 text-white border border-gray-600 rounded px-2 py-1 text-xs focus:border-blue-500 focus:outline-none"
+                    min="-3000"
+                    max="2024"
+                  />
+                  <span className="mx-1 text-gray-400">-</span>
+                  <input
+                    type="number"
+                    value={endYear}
+                    onChange={(e) => handleEndYearChange(e.target.value)}
+                    className="w-16 bg-gray-800 text-white border border-gray-600 rounded px-2 py-1 text-xs focus:border-blue-500 focus:outline-none"
+                    min="-3000"
+                    max="2024"
+                  />
                 </div>
-              )}
+                {onTimeRangeChange && (startYear !== timeRange?.start || endYear !== timeRange?.end) && (
+                  <button
+                    onClick={handleApplyTimeRange}
+                    disabled={isApplyingTimeRange}
+                    className="flex items-center px-2 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded text-xs transition-colors"
+                    title={t('results.applyTimeRange')}
+                  >
+                    {isApplyingTimeRange ? (
+                      <RefreshCw size={12} className="animate-spin" />
+                    ) : (
+                      <RefreshCw size={12} />
+                    )}
+                  </button>
+                )}
+              </div>
               <div className="bg-green-600 text-white px-2 py-1 rounded-full text-xs">
                 {t('results.artworkCount', { count: filteredAndSortedArtworks.length })}
               </div>
@@ -192,6 +264,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
                   artwork={artwork}
                   onClick={() => onArtworkSelect(artwork)}
                   onAddToGallery={onAddToGallery}
+                  isAddedToGallery={galleryArtworkIds.has(artwork.id)}
                 />
               ))}
             </div>

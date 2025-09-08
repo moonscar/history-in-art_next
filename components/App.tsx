@@ -47,6 +47,8 @@ function App() {
     setGalleryArtworks(persistedGallery);
   }, [persistedGallery]);
 
+  // 创建画廊作品ID集合以提高查找效率
+  const galleryArtworkIds = useMemo(() => new Set(galleryArtworks.map(a => a.id)), [galleryArtworks]);
   const [resultsData, setResultsData] = useState<{
     artworks: Artwork[];
     location?: Location;
@@ -164,6 +166,30 @@ function App() {
     updateURL({}, true);
   };
 
+  const handleResultsTimeRangeChange = async (newStart: number, newEnd: number) => {
+    const newTimeRange = { start: newStart, end: newEnd };
+    setTimeRange(newTimeRange);
+    
+    // 更新 chatQuery 以触发数据重新获取
+    setChatQuery(prev => ({
+      ...prev,
+      timeRange: newTimeRange
+    }));
+    
+    // 如果有位置信息，重新获取该位置的艺术品
+    if (resultsData.location) {
+      try {
+        const locationArtworks = await getArtworksByLocation(resultsData.location, newTimeRange);
+        setResultsData({
+          artworks: locationArtworks,
+          location: resultsData.location,
+          timeRange: newTimeRange
+        });
+      } catch (error) {
+        console.error('Error fetching artworks with new time range:', error);
+      }
+    }
+  };
   const handleLocationTimeSelect = async (location: Location, currentTimeRange: TimeRange) => {
     try {
       const locationArtworks = await getArtworksByLocation(location, currentTimeRange);
@@ -376,6 +402,7 @@ function App() {
               onLocationTimeSelect={handleLocationTimeSelect}
               onArtworkSelect={setSelectedArtwork}
               onAddToGallery={handleAddToGallery}
+              galleryArtworkIds={galleryArtworkIds}
             />
             
             {/* Floating Timeline */}
@@ -404,6 +431,8 @@ function App() {
               onClose={handleResultsClose}
               onArtworkSelect={setSelectedArtwork}
               onAddToGallery={handleAddToGallery}
+              onTimeRangeChange={handleResultsTimeRangeChange}
+              galleryArtworkIds={galleryArtworkIds}
             />
           )}
 
@@ -423,6 +452,7 @@ function App() {
             artwork={selectedArtwork}
             onClose={() => setSelectedArtwork(null)}
             onAddToGallery={handleAddToGallery}
+            isAddedToGallery={selectedArtwork ? galleryArtworkIds.has(selectedArtwork.id) : false}
           />
         </main>
 

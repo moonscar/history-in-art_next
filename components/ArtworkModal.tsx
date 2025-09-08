@@ -2,7 +2,7 @@ import React from 'react';
 import { Artwork } from '../types';
 import SEOHead from './SEOHead';
 import { generateArtworkStructuredData } from '../utils/structuredData';
-import { X, MapPin, Calendar, User, Palette, Image, Heart } from 'lucide-react';
+import { X, MapPin, Calendar, User, Palette, Image, Heart, Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 
@@ -10,13 +10,59 @@ interface ArtworkModalProps {
   artwork: Artwork | null;
   onClose: () => void;
   onAddToGallery?: (artwork: Artwork) => void;
+  isAddedToGallery?: boolean;
 }
 
-const ArtworkModal: React.FC<ArtworkModalProps> = ({ artwork, onClose, onAddToGallery }) => {
+const ArtworkModal: React.FC<ArtworkModalProps> = ({ 
+  artwork, 
+  onClose, 
+  onAddToGallery, 
+  isAddedToGallery = false 
+}) => {
   const t = useTranslations();
+  const [showAddedFeedback, setShowAddedFeedback] = React.useState(false);
 
   if (!artwork) return null;
 
+  const handleAddToGallery = () => {
+    if (onAddToGallery && !isAddedToGallery && !showAddedFeedback) {
+      onAddToGallery(artwork);
+      setShowAddedFeedback(true);
+      setTimeout(() => {
+        setShowAddedFeedback(false);
+      }, 1500);
+    }
+  };
+
+  const getButtonStyle = () => {
+    if (isAddedToGallery) {
+      return "from-pink-600 to-pink-700 hover:from-pink-700 hover:to-pink-800";
+    }
+    if (showAddedFeedback) {
+      return "from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 scale-105";
+    }
+    return "from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700";
+  };
+
+  const getButtonText = () => {
+    if (isAddedToGallery) {
+      return t('gallery.inGallery');
+    }
+    if (showAddedFeedback) {
+      return t('gallery.added');
+    }
+    return t('gallery.addToGallery');
+  };
+
+  const getButtonIcon = () => {
+    if (isAddedToGallery) {
+      return <Heart size={18} className="mr-2 fill-current" />;
+    }
+    if (showAddedFeedback) {
+      return <Check size={18} className="mr-2" />;
+    }
+    return <Heart size={18} className="mr-2" />;
+  };
   const artworkSEO = {
     title: `${artwork.title} - ${artwork.artist} | History in Art`,
     description: `${artwork.description.substring(0, 160)}... 创作于${artwork.year}年，${artwork.location.city}, ${artwork.location.country}。`,
@@ -127,11 +173,12 @@ const ArtworkModal: React.FC<ArtworkModalProps> = ({ artwork, onClose, onAddToGa
                 <div className="space-y-3">
                   {onAddToGallery && (
                     <button
-                      onClick={() => onAddToGallery(artwork)}
-                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 px-6 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+                      onClick={handleAddToGallery}
+                      className={`w-full bg-gradient-to-r text-white py-3 px-6 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center ${getButtonStyle()}`}
+                      disabled={showAddedFeedback}
                     >
-                      <Heart size={18} className="mr-2" />
-                      {t('gallery.addToGallery')}
+                      {getButtonIcon()}
+                      {getButtonText()}
                     </button>
                   )}
                   
