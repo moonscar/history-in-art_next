@@ -7,12 +7,12 @@ import {getTranslations, getLocale} from 'next-intl/server';
 
 
 interface StoriesPageProps {
-  stories: Story[]
+  stories: Story[];
+  locale: string;
 }
 
-async function StoriesPage({ stories }: StoriesPageProps) {
+async function StoriesPage({ stories, locale }: StoriesPageProps) {
   const t = getTranslations();
-  const currentLocale = await getLocale();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
@@ -21,10 +21,10 @@ async function StoriesPage({ stories }: StoriesPageProps) {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="text-center">
             <h1 className="text-4xl font-bold text-white mb-4">
-              {currentLocale === 'en' ? 'Discover Stories' : '发现故事'}
+              {locale === 'en' ? 'Discover Stories' : '发现故事'}
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              {currentLocale === 'en' 
+              {locale === 'en' 
                 ? 'Explore curated art stories to understand the cultural context and artistic development of historical periods'
                 : '通过精选的艺术故事，深入了解历史时期的文化背景和艺术发展脉络'
               }
@@ -38,7 +38,7 @@ async function StoriesPage({ stories }: StoriesPageProps) {
         {stories.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-400 text-lg">
-              {currentLocale === 'en' ? 'No stories available yet.' : '暂无故事内容'}
+              {locale === 'en' ? 'No stories available yet.' : '暂无故事内容'}
             </p>
           </div>
         ) : (
@@ -88,7 +88,7 @@ async function StoriesPage({ stories }: StoriesPageProps) {
                     href={`/stories/${story.slug}`}
                     className="inline-flex items-center text-blue-400 hover:text-blue-300 font-medium text-sm transition-colors"
                   >
-                    {currentLocale === 'en' ? 'Read Full Story' : '阅读完整故事'}
+                    {locale === 'en' ? 'Read Full Story' : '阅读完整故事'}
                     <ArrowRight size={16} className="ml-1" />
                   </Link>
                 </div>
@@ -102,10 +102,10 @@ async function StoriesPage({ stories }: StoriesPageProps) {
           <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm rounded-2xl p-8 border border-gray-700">
             <BookOpen size={48} className="text-blue-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-4">
-              {currentLocale === 'en' ? 'Explore More Art Stories' : '探索更多艺术故事'}
+              {locale === 'en' ? 'Explore More Art Stories' : '探索更多艺术故事'}
             </h2>
             <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
-              {currentLocale === 'en' 
+              {locale === 'en' 
                 ? 'Every artwork has a unique story behind it. Discover more artistic treasures hidden in history through our interactive map and timeline.'
                 : '每个艺术作品背后都有一个独特的故事。通过我们的交互式地图和时间轴，发现更多隐藏在历史中的艺术珍品。'
               }
@@ -114,7 +114,7 @@ async function StoriesPage({ stories }: StoriesPageProps) {
               href="/"
               className="inline-flex items-center bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 transform hover:scale-105"
             >
-              {currentLocale === 'en' ? 'Start Exploring' : '开始探索'}
+              {locale === 'en' ? 'Start Exploring' : '开始探索'}
               <ArrowRight size={20} className="ml-2" />
             </Link>
           </div>
@@ -124,8 +124,13 @@ async function StoriesPage({ stories }: StoriesPageProps) {
   );
 }
 
-export default async function StoriesPageWrapper() {
-  const locale = await getLocale();
+
+export default async function StoriesPageWrapper({
+  params,
+}: {
+  params: { locale: string };
+}) {
+  const { locale } = params; // 从 URL path 获取 locale
   const slugs = getAllStories(locale);
 
   const stories = await Promise.all(
@@ -135,5 +140,5 @@ export default async function StoriesPageWrapper() {
     })
   );
 
-  return <StoriesClient stories={stories} />;
+  return <StoriesPage stories={stories} locale={locale} />;
 }
