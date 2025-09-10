@@ -10,7 +10,7 @@
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://history-in-art.org/zh" />
     <xhtml:link rel="alternate" hreflang="en" href="https://history-in-art.org/en" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://history-in-art.org/" />
+    <xhtml:link rel="canonical" hreflang="x-default" href="https://history-in-art.org/" />
   </url>
 
   <!-- Guide pages -->
@@ -27,29 +27,29 @@
   <url>
     <loc>https://history-in-art.org/stories</loc>
     <lastmod>2025-09-01</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>daily</changefreq>
     <priority>0.7</priority>
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://history-in-art.org/zh/stories" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://history-in-art.org/en/stories" />
+    <xhtml:link rel="canonical" hreflang="en" href="https://history-in-art.org/en/stories" />
   </url>
 
   <!-- Story detail pages -->
   <url>
-    <loc>https://history-in-art.org/zh/stories/renaissance-florence</loc>
+    <loc>https://history-in-art.org/stories/London</loc>
     <lastmod>2025-09-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://history-in-art.org/zh/stories/London" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://history-in-art.org/en/stories/London" />
+    <xhtml:link rel="canonical" hreflang="en" href="https://history-in-art.org/en/stories/London" />
   </url>
 
   <url>
-    <loc>https://history-in-art.org/zh/stories/renaissance-florence</loc>
+    <loc>https://history-in-art.org/stories/Paris-life-in-19th</loc>
     <lastmod>2025-09-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://history-in-art.org/zh/stories/Paris-life-in-19th.mdx" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://history-in-art.org/en/stories/Paris-life-in-19th.mdx" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://history-in-art.org/zh/stories/Paris-life-in-19th" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://history-in-art.org/en/stories/Paris-life-in-19th" />
   </url>
 
   <!-- Country-based pages -->
