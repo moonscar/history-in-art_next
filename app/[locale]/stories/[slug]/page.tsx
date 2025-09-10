@@ -11,10 +11,11 @@ interface StoryDetailPageProps {
     meta: Story;
     content: string;
   };
+  locale: string;
 }
 
-async function StoryDetailPage({ story }: StoryDetailPageProps) {
-  const currentLocale = await getLocale();
+async function StoryDetailPage({ story, locale }: StoryDetailPageProps) {
+  const currentLocale = locale;
   const {slug, meta, content} = story;
   const period = meta.period ?? '未知';
   const [start, end] = period.split('-');
@@ -147,11 +148,11 @@ async function StoryDetailPage({ story }: StoryDetailPageProps) {
   );
 }
 
-export default async function StoryDetailPageWrapper({ params }: { params: { slug: string } }) {
-  const currentLocale = await getLocale();
-  const story = await getStory(params.slug, currentLocale); // 默认中文，可根据实际路由调整
+export default async function StoryDetailPageWrapper({ params }: { params: 
+  { slug: string, locale: string } }) {
+  const story = await getStory(params.slug, params.locale); // 默认中文，可根据实际路由调整
   
   return (
-      <StoryDetailPage story={story} />
+      <StoryDetailPage story={story} locale={params.locale}/>
   );
 }
