@@ -125,12 +125,12 @@ async function StoriesPage({ stories }: StoriesPageProps) {
 }
 
 export default async function StoriesPageWrapper() {
-  const locale = "zh";
+  const locale = await getLocale();
   const slugs = getAllStories(locale);
 
   const stories = await Promise.all(
     slugs.map(async (slug) => {
-      const { meta } = await getStory(slug, locale);
+      const { meta } = getStory(slug, locale);
       return meta;
     })
   );
