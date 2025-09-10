@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ArrowLeft, Clock, MapPin, Calendar, User, ArrowRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { getStory, Story } from '@/lib/stories';
-// import {getTranslations} from 'next-intl/server';
+import {getTranslations, getLocale} from 'next-intl/server';
 
 interface StoryDetailPageProps {
   story: {
@@ -13,11 +13,9 @@ interface StoryDetailPageProps {
   };
 }
 
-function StoryDetailPage({ story }: StoryDetailPageProps) {
-  // const { t, i18n } = useTranslation();
-  // const currentLocale = i18n.language || 'zh';
+async function StoryDetailPage({ story }: StoryDetailPageProps) {
+  const currentLocale = await getLocale();
   const {slug, meta, content} = story;
-  const currentLocale = slug;
   const period = meta.period ?? '未知';
   const [start, end] = period.split('-');
 
@@ -25,12 +23,12 @@ function StoryDetailPage({ story }: StoryDetailPageProps) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
         <div className="text-center">
-{/*          <h1 className="text-2xl font-bold text-white mb-4">
+          <h1 className="text-2xl font-bold text-white mb-4">
             {currentLocale === 'en' ? 'Story Not Found' : '故事未找到'}
           </h1>
           <p className="text-gray-300 mb-6">
             {currentLocale === 'en' ? 'Sorry, the story you are looking for does not exist.' : '抱歉，您访问的故事不存在。'}
-          </p>*/}
+          </p>
           <Link 
             href="/stories"
             className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
@@ -150,7 +148,8 @@ function StoryDetailPage({ story }: StoryDetailPageProps) {
 }
 
 export default async function StoryDetailPageWrapper({ params }: { params: { slug: string } }) {
-  const story = await getStory(params.slug, 'zh'); // 默认中文，可根据实际路由调整
+  const currentLocale = await getLocale();
+  const story = await getStory(params.slug, currentLocale); // 默认中文，可根据实际路由调整
   
   return (
       <StoryDetailPage story={story} />
