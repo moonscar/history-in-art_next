@@ -112,6 +112,9 @@
     "title": "我的艺术画廊",
     "count": "{count} 件收藏",
     "addToGallery": "添加到画廊",
+    "alreadyInGallery": "已在画廊中",
+    "inGallery": "已收藏",
+    "added": "已添加",
     "removeArtwork": "从画廊移除",
     "clearGallery": "清空画廊",
     "confirmClear": "确定要清空画廊吗？此操作无法撤销。",
@@ -124,5 +127,22 @@
     "sortByDateAdded": "按添加时间",
     "totalArtworks": "共 {count} 件作品",
     "close": "关闭画廊"
+  },
+  "results": {
+    "title": "搜索结果",
+    "artworkCount": "{count} 件作品",
+    "filters": "筛选和排序",
+    "reset": "重置",
+    "movement": "艺术流派",
+    "artist": "艺术家",
+    "sortBy": "排序方式",
+    "sortByYear": "按年代",
+    "sortByTitle": "按标题",
+    "sortByArtist": "按艺术家",
+    "allMovements": "所有流派",
+    "allArtists": "所有艺术家",
+    "noResults": "未找到匹配的艺术品",
+    "noResultsDesc": "请尝试调整筛选条件或重新搜索。",
+    "applyTimeRange": "应用时间范围"
   }
 }

@@ -96,13 +96,15 @@ export const generateURLParams = (params: URLParams): string => {
 
 // Update browser URL without page reload
 export const updateURL = (params: URLParams, replace: boolean = false) => {
-  // const newURL = `${window.location.pathname}${generateURLParams(params)}`;
+  if (typeof window === 'undefined') return;
   
-  // if (replace) {
-  //   window.history.replaceState({}, newURL);
-  // } else {
-  //   window.history.pushState({}, newURL);
-  // }
+  const newURL = `${window.location.pathname}${generateURLParams(params)}`;
+  
+  if (replace) {
+    window.history.replaceState({}, '', newURL);
+  } else {
+    window.history.pushState({}, '', newURL);
+  }
 };
 
 // Get initial state from URL parameters

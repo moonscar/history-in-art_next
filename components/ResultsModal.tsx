@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Artwork, Location } from '../types';
-import { X, Filter, MapPin, Calendar, User, Palette, RotateCcw } from 'lucide-react';
+import { X, Filter, MapPin, Calendar, User, Palette, RotateCcw, RefreshCw } from 'lucide-react';
 import ArtworkCard from './ArtworkCard';
 
 interface ResultsModalProps {
@@ -10,6 +11,8 @@ interface ResultsModalProps {
   onClose: () => void;
   onArtworkSelect: (artwork: Artwork) => void;
   onAddToGallery?: (artwork: Artwork) => void;
+  onTimeRangeChange?: (start: number, end: number) => void;
+  galleryArtworkIds?: Set<string>;
 }
 
 const ResultsModal: React.FC<ResultsModalProps> = ({
@@ -18,12 +21,25 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
   timeRange,
   onClose,
   onArtworkSelect,
-  onAddToGallery
+  onAddToGallery,
+  onTimeRangeChange,
+  galleryArtworkIds = new Set()
 }) => {
+  const t = useTranslations();
   const [selectedMovement, setSelectedMovement] = useState('All Movements');
   const [selectedArtist, setSelectedArtist] = useState('All Artists');
   const [sortBy, setSortBy] = useState('year');
+  const [startYear, setStartYear] = useState(timeRange?.start || 1400);
+  const [endYear, setEndYear] = useState(timeRange?.end || 2024);
+  const [isApplyingTimeRange, setIsApplyingTimeRange] = useState(false);
 
+  // 当 timeRange prop 变化时更新本地状态
+  React.useEffect(() => {
+    if (timeRange) {
+      setStartYear(timeRange.start);
+      setEndYear(timeRange.end);
+    }
+  }, [timeRange]);
   // 获取可用的筛选选项
   const movements = useMemo(() => {
     const uniqueMovements = [...new Set(artworks.map(a => a.movement))];
@@ -64,15 +80,43 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
     setSelectedMovement('All Movements');
     setSelectedArtist('All Artists');
     setSortBy('year');
+    if (timeRange) {
+      setStartYear(timeRange.start);
+      setEndYear(timeRange.end);
+    }
   };
 
+  const handleApplyTimeRange = async () => {
+    if (onTimeRangeChange && (startYear !== timeRange?.start || endYear !== timeRange?.end)) {
+      setIsApplyingTimeRange(true);
+      try {
+        await onTimeRangeChange(startYear, endYear);
+      } finally {
+        setIsApplyingTimeRange(false);
+      }
+    }
+  };
+
+  const handleStartYearChange = (value: string) => {
+    const year = parseInt(value);
+    if (!isNaN(year) && year >= -3000 && year <= 2024) {
+      setStartYear(Math.min(year, endYear - 1));
+    }
+  };
+
+  const handleEndYearChange = (value: string) => {
+    const year = parseInt(value);
+    if (!isNaN(year) && year >= -3000 && year <= 2024) {
+      setEndYear(Math.max(year, startYear + 1));
+    }
+  };
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
       <div className="bg-gray-900 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <div>
-            <h2 className="text-2xl font-bold text-white mb-2">搜索结果</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">{t('results.title')}</h2>
             <div className="flex items-center space-x-4 text-sm text-gray-300">
               {location && (
                 <div className="flex items-center">
@@ -83,14 +127,44 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
                   }
                 </div>
               )}
-              {timeRange && (
+              <div className="flex items-center space-x-2">
                 <div className="flex items-center">
                   <Calendar size={16} className="mr-1 text-purple-400" />
-                  {timeRange.start} - {timeRange.end}
+                  <input
+                    type="number"
+                    value={startYear}
+                    onChange={(e) => handleStartYearChange(e.target.value)}
+                    className="w-16 bg-gray-800 text-white border border-gray-600 rounded px-2 py-1 text-xs focus:border-blue-500 focus:outline-none"
+                    min="-3000"
+                    max="2024"
+                  />
+                  <span className="mx-1 text-gray-400">-</span>
+                  <input
+                    type="number"
+                    value={endYear}
+                    onChange={(e) => handleEndYearChange(e.target.value)}
+                    className="w-16 bg-gray-800 text-white border border-gray-600 rounded px-2 py-1 text-xs focus:border-blue-500 focus:outline-none"
+                    min="-3000"
+                    max="2024"
+                  />
                 </div>
-              )}
+                {onTimeRangeChange && (startYear !== timeRange?.start || endYear !== timeRange?.end) && (
+                  <button
+                    onClick={handleApplyTimeRange}
+                    disabled={isApplyingTimeRange}
+                    className="flex items-center px-2 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded text-xs transition-colors"
+                    title={t('results.applyTimeRange')}
+                  >
+                    {isApplyingTimeRange ? (
+                      <RefreshCw size={12} className="animate-spin" />
+                    ) : (
+                      <RefreshCw size={12} />
+                    )}
+                  </button>
+                )}
+              </div>
               <div className="bg-green-600 text-white px-2 py-1 rounded-full text-xs">
-                {filteredAndSortedArtworks.length} 件作品
+                {t('results.artworkCount', { count: filteredAndSortedArtworks.length })}
               </div>
             </div>
           </div>
@@ -107,21 +181,21 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <Filter size={18} className="mr-2 text-orange-400" />
-              <h3 className="text-white font-medium">筛选和排序</h3>
+              <h3 className="text-white font-medium">{t('results.filters')}</h3>
             </div>
             <button
               onClick={handleResetFilters}
               className="flex items-center px-3 py-1 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors text-sm"
             >
               <RotateCcw size={14} className="mr-1" />
-              重置
+              {t('results.reset')}
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                艺术流派
+                {t('results.movement')}
               </label>
               <select
                 value={selectedMovement}
@@ -138,7 +212,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                艺术家
+                {t('results.artist')}
               </label>
               <select
                 value={selectedArtist}
@@ -155,16 +229,16 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                排序方式
+                {t('results.sortBy')}
               </label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="w-full bg-gray-800 text-white border border-gray-700 rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none"
               >
-                <option value="year">按年代</option>
-                <option value="title">按标题</option>
-                <option value="artist">按艺术家</option>
+                <option value="year">{t('results.sortByYear')}</option>
+                <option value="title">{t('results.sortByTitle')}</option>
+                <option value="artist">{t('results.sortByArtist')}</option>
               </select>
             </div>
           </div>
@@ -177,9 +251,9 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
               <div className="w-16 h-16 bg-gray-700 rounded-full mx-auto mb-4 flex items-center justify-center">
                 <Palette size={24} className="text-gray-500" />
               </div>
-              <h3 className="text-lg font-medium text-gray-400 mb-2">未找到匹配的艺术品</h3>
+              <h3 className="text-lg font-medium text-gray-400 mb-2">{t('results.noResults')}</h3>
               <p className="text-gray-500 text-sm">
-                请尝试调整筛选条件或重新搜索。
+                {t('results.noResultsDesc')}
               </p>
             </div>
           ) : (
@@ -190,6 +264,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
                   artwork={artwork}
                   onClick={() => onArtworkSelect(artwork)}
                   onAddToGallery={onAddToGallery}
+                  isAddedToGallery={galleryArtworkIds.has(artwork.id)}
                 />
               ))}
             </div>

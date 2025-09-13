@@ -110,8 +110,11 @@
   },
   "gallery": {
     "title": "My Art Gallery",
-    "count": "{{count}} artworks",
+    "count": "{count} artworks", 
     "addToGallery": "Add to Gallery",
+    "alreadyInGallery": "Already in Gallery",
+    "inGallery": "In Gallery",
+    "added": "Added",
     "removeArtwork": "Remove from Gallery",
     "clearGallery": "Clear Gallery",
     "confirmClear": "Are you sure you want to clear the gallery? This action cannot be undone.",
@@ -124,6 +127,23 @@
     "sortByDateAdded": "By Date Added",
     "totalArtworks": "Total {count} artworks",
     "close": "Close Gallery"
+  },
+  "results": {
+    "title": "Search Results",
+    "artworkCount": "{count} artworks",
+    "filters": "Filters and Sorting",
+    "reset": "Reset",
+    "movement": "Art Movement",
+    "artist": "Artist",
+    "sortBy": "Sort By",
+    "sortByYear": "By Year",
+    "sortByTitle": "By Title", 
+    "sortByArtist": "By Artist",
+    "allMovements": "All Movements",
+    "allArtists": "All Artists",
+    "noResults": "No matching artworks found",
+    "noResultsDesc": "Try adjusting your filter criteria or search again.",
+    "applyTimeRange": "Apply Time Range"
   }
 
 }

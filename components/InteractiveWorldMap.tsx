@@ -26,6 +26,7 @@ interface InteractiveWorldMapProps {
   onLocationTimeSelect: (location: Location, timeRange: TimeRange) => void;
   onArtworkSelect: (artwork: Artwork) => void;
   onAddToGallery?: (artwork: Artwork) => void;
+  galleryArtworkIds?: Set<string>;
 }
 
 // Custom marker icons for different periods
@@ -153,7 +154,8 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
   timeRange,
   onLocationTimeSelect,
   onArtworkSelect,
-  onAddToGallery
+  onAddToGallery,
+  galleryArtworkIds = new Set()
 }) => {
   const t = useTranslations();
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -609,10 +611,16 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
                                   e.stopPropagation();
                                   onAddToGallery(artwork);
                                 }}
-                                className="w-6 h-6 bg-green-600 hover:bg-green-700 text-white rounded-full flex items-center justify-center transition-colors flex-shrink-0"
+                                className={`w-6 h-6 text-white rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
+                                  galleryArtworkIds.has(artwork.id) 
+                                    ? 'bg-pink-600 hover:bg-pink-700' 
+                                    : 'bg-green-600 hover:bg-green-700'
+                                }`}
                                 title={t('gallery.addToGallery')}
                               >
-                                <span className="text-xs font-bold leading-none">+</span>
+                                <span className="text-xs font-bold leading-none">
+                                  {galleryArtworkIds.has(artwork.id) ? '♥' : '+'}
+                                </span>
                               </button>
                             )}
                           </div>

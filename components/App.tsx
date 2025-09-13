@@ -3,6 +3,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import { Artwork, TimeRange, Location } from '@/types';
 import { useArtworks } from '@/hooks/useArtworks';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { parseURLParams, updateURL, getInitialStateFromURL } from '@/utils/urlParams';
 import SEOHead from '@/components/SEOHead';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
@@ -18,6 +19,7 @@ import ArtworkModal from '@/components/ArtworkModal';
 import ChatInterface from '@/components/ChatInterface';
 import ResultsModal from '@/components/ResultsModal';
 import GalleryModal from '@/components/GalleryModal';
+import Navbar from "@/components/Navbar";
 import { Globe, Clock, Palette, AlertCircle, Heart } from 'lucide-react';
 
 import dynamic from 'next/dynamic';
@@ -36,6 +38,17 @@ function App() {
   const [showResults, setShowResults] = useState(false);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [galleryArtworks, setGalleryArtworks] = useState<Artwork[]>([]);
+  
+  // 使用 localStorage 持久化画廊数据
+  const [persistedGallery, setPersistedGallery] = useLocalStorage<Artwork[]>('artGallery', []);
+  
+  // 初始化时从 localStorage 加载画廊数据
+  useEffect(() => {
+    setGalleryArtworks(persistedGallery);
+  }, [persistedGallery]);
+
+  // 创建画廊作品ID集合以提高查找效率
+  const galleryArtworkIds = useMemo(() => new Set(galleryArtworks.map(a => a.id)), [galleryArtworks]);
   const [resultsData, setResultsData] = useState<{
     artworks: Artwork[];
     location?: Location;
@@ -148,9 +161,35 @@ function App() {
     setShowResults(false);
     setChatQuery({ timeRange: timeRange });
     setTimeRange({ start: 1400, end: 2024 });
-    // window.history.replaceState({}, '', window.location.pathname);
+    
+    // 更新 URL，移除查询参数
+    updateURL({}, true);
   };
 
+  const handleResultsTimeRangeChange = async (newStart: number, newEnd: number) => {
+    const newTimeRange = { start: newStart, end: newEnd };
+    setTimeRange(newTimeRange);
+    
+    // 更新 chatQuery 以触发数据重新获取
+    setChatQuery(prev => ({
+      ...prev,
+      timeRange: newTimeRange
+    }));
+    
+    // 如果有位置信息，重新获取该位置的艺术品
+    if (resultsData.location) {
+      try {
+        const locationArtworks = await getArtworksByLocation(resultsData.location, newTimeRange);
+        setResultsData({
+          artworks: locationArtworks,
+          location: resultsData.location,
+          timeRange: newTimeRange
+        });
+      } catch (error) {
+        console.error('Error fetching artworks with new time range:', error);
+      }
+    }
+  };
   const handleLocationTimeSelect = async (location: Location, currentTimeRange: TimeRange) => {
     try {
       const locationArtworks = await getArtworksByLocation(location, currentTimeRange);
@@ -167,21 +206,27 @@ function App() {
 
   // Gallery functions
   const handleAddToGallery = (artwork: Artwork) => {
-    setGalleryArtworks(prev => {
+    const updateGallery = (prev: Artwork[]) => {
       // Check if artwork already exists in gallery
       if (prev.some(item => item.id === artwork.id)) {
         return prev; // Don't add duplicates
       }
       return [...prev, artwork];
-    });
+    };
+    
+    setGalleryArtworks(updateGallery);
+    setPersistedGallery(updateGallery);
   };
 
   const handleRemoveFromGallery = (artworkId: string) => {
-    setGalleryArtworks(prev => prev.filter(artwork => artwork.id !== artworkId));
+    const updateGallery = (prev: Artwork[]) => prev.filter(artwork => artwork.id !== artworkId);
+    setGalleryArtworks(updateGallery);
+    setPersistedGallery(updateGallery);
   };
 
   const handleClearGallery = () => {
     setGalleryArtworks([]);
+    setPersistedGallery([]);
   };
 
   // Generate dynamic SEO data based on current state
@@ -199,6 +244,16 @@ function App() {
       if (chatQuery.movement) filters.push(chatQuery.movement);
       if (chatQuery.artist) filters.push(chatQuery.artist);
       
+      // 更新 URL 参数
+      updateURL({
+        country: chatQuery.location?.country,
+        city: chatQuery.location?.city,
+        start: timeRange.start !== 1400 ? timeRange.start : undefined,
+        end: timeRange.end !== 2024 ? timeRange.end : undefined,
+        artist: chatQuery.artist,
+        movement: chatQuery.movement
+      });
+      
       const siteName = t('site.name');
       if (locale === 'zh') {
         title = `${filters.join(' ')} 艺术作品 | ${siteName}`;
@@ -209,6 +264,12 @@ function App() {
       }
       keywords = `${filters.join(',')},${keywords}`;
     } else if (timeRange.start !== 1400 || timeRange.end !== 2024) {
+      // 更新 URL 参数
+      updateURL({
+        start: timeRange.start !== 1400 ? timeRange.start : undefined,
+        end: timeRange.end !== 2024 ? timeRange.end : undefined
+      });
+      
       const siteName = t('site.name');
       if (locale === 'zh') {
         title = `${timeRange.start}-${timeRange.end}年艺术作品 | ${siteName}`;
@@ -217,6 +278,9 @@ function App() {
         title = `${timeRange.start}-${timeRange.end} Artworks | ${siteName}`;
         description = `Explore world artworks from ${timeRange.start}-${timeRange.end}, discover historical art treasures through interactive maps and timelines.`;
       }
+    } else {
+      // 如果没有特殊筛选条件，清除 URL 参数
+      updateURL({}, true);
     }
     
     return { title, description, keywords, robots };
@@ -321,80 +385,12 @@ function App() {
       />
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
         {/* Header */}
-        <header className="bg-black/20 backdrop-blur-sm border-b border-gray-700" role="banner">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Palette size={24} className="text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-white">{t('site.name')}</h1>
-                  <p className="text-gray-300 text-sm">{t('site.tagline')}</p>
-                </div>
-              </div>
-
-              {/* Navigation */}
-              <nav className="hidden md:flex items-center space-x-6" role="navigation">
-                <Link 
-                  href="/" 
-                  className="text-gray-300 hover:text-white transition-colors font-medium"
-                >
-                  {t('nav.explore')}
-                </Link>
-                <Link 
-                  href="/stories" 
-                  className="text-gray-300 hover:text-white transition-colors font-medium"
-                >
-                  {t('nav.stories')}
-                </Link>
-                <Link 
-                  href="/guide" 
-                  className="text-gray-300 hover:text-white transition-colors font-medium"
-                >
-                  {t('nav.guide')}
-                </Link>
-                <Link 
-                  href="/about" 
-                  className="text-gray-300 hover:text-white transition-colors font-medium"
-                >
-                  {t('nav.about')}
-                </Link>
-              </nav>
-
-              <div className="flex items-center space-x-4 text-sm text-gray-300">
-                <LanguageSwitcher />
-                {loading && (
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin mr-2"></div>
-                    <span className="text-blue-400">{t('header.updating')}</span>
-                  </div>
-                )}
-                {chatQuery.location && (
-                  <div className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs">
-                    {chatQuery.location.country}
-                  </div>
-                )}
-                
-                {/* Gallery Button */}
-                <button
-                  onClick={() => setShowGalleryModal(true)}
-                  className="relative flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white rounded-lg transition-all duration-200 transform hover:scale-105"
-                  title={t('header.viewGallery')}
-                >
-                  <Heart size={16} />
-                  <span className="text-sm font-medium">{t('header.gallery')}</span>
-                  {galleryArtworks.length > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                      {galleryArtworks.length}
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
-
+        <Navbar
+          loading={loading}
+          chatQuery={chatQuery}
+          galleryArtworks={galleryArtworks}
+          setShowGalleryModal={setShowGalleryModal}
+        />
 
         {/* Main Content */}
         <main className="relative" role="main">
@@ -406,6 +402,7 @@ function App() {
               onLocationTimeSelect={handleLocationTimeSelect}
               onArtworkSelect={setSelectedArtwork}
               onAddToGallery={handleAddToGallery}
+              galleryArtworkIds={galleryArtworkIds}
             />
             
             {/* Floating Timeline */}
@@ -434,6 +431,8 @@ function App() {
               onClose={handleResultsClose}
               onArtworkSelect={setSelectedArtwork}
               onAddToGallery={handleAddToGallery}
+              onTimeRangeChange={handleResultsTimeRangeChange}
+              galleryArtworkIds={galleryArtworkIds}
             />
           )}
 
@@ -453,6 +452,7 @@ function App() {
             artwork={selectedArtwork}
             onClose={() => setSelectedArtwork(null)}
             onAddToGallery={handleAddToGallery}
+            isAddedToGallery={selectedArtwork ? galleryArtworkIds.has(selectedArtwork.id) : false}
           />
         </main>
 
