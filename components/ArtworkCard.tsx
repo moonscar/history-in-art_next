@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { Artwork } from '../types';
 import { MapPin, Calendar, User, Palette, Check, Heart } from 'lucide-react';
 
@@ -52,12 +53,12 @@ const ArtworkCard: React.FC<ArtworkCardProps> = ({
     return <span className="text-lg font-bold leading-none">+</span>;
   };
   return (
-    <article 
-      className="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:-translate-y-2 group"
-      onClick={onClick}
-      itemScope
-      itemType="https://schema.org/VisualArtwork"
-    >
+    <Link href={`/artwork/${artwork.slug}`}>
+      <article 
+        className="relative bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:-translate-y-2 group"
+        itemScope
+        itemType="https://schema.org/VisualArtwork"
+      >
       {/* Add to Gallery Button */}
       {onAddToGallery && showAddButton && (
         <button
@@ -121,7 +122,8 @@ const ArtworkCard: React.FC<ArtworkCardProps> = ({
           {artwork.description}
         </p>
       </div>
-    </article>
+      </article>
+    </Link>
   );
 };
 

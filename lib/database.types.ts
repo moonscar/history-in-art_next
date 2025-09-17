@@ -12,6 +12,7 @@ export interface Database {
       artworks: {
         Row: {
           id: string
+          slug: string | null
           title: string
           artist_name: string | null
           creation_year: number | null
@@ -52,6 +53,7 @@ export interface Database {
         }
         Update: {
           id?: string
+          slug?: string | null
           title?: string
           artist_name?: string | null
           creation_year?: number | null

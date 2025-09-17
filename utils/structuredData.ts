@@ -78,11 +78,11 @@ export const generateArtworkStructuredData = (artwork: Artwork) => ({
   },
   "image": artwork.imageUrl,
   "thumbnailUrl": artwork.imageUrl,
-  "url": `https://history-in-art.org/artwork/${artwork.id}`,
+  url: `https://history-in-art.org/artwork/${artwork.slug}`,
   "keywords": [artwork.movement, artwork.period, artwork.artist, artwork.location.country].join(', '),
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": `https://history-in-art.org/artwork/${artwork.id}`
+    "@id": `https://history-in-art.org/artwork/${artwork.slug}`
   }
 });
 
@@ -109,7 +109,7 @@ export const generateCollectionStructuredData = (artworks: Artwork[], location?:
           "name": artwork.title,
           "creator": artwork.artist,
           "dateCreated": artwork.year.toString(),
-          "url": `https://history-in-art.org/artwork/${artwork.id}`
+          "url": `https://history-in-art.org/artwork/${artwork.slug}`
         }
       }))
     }

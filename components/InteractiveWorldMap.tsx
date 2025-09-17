@@ -583,14 +583,14 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
                           <div
                             key={artwork.id}
                             className="flex items-start space-x-3 p-2 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors"
+                            onClick={() => window.open(`/artwork/${artwork.slug}`, '_self')}
                           >
                             <img
                               src={artwork.imageUrl}
                               alt={artwork.title}
                               className="w-12 h-12 object-cover rounded"
-                              onClick={() => onArtworkSelect(artwork)}
                             />
-                            <div className="flex-1 min-w-0" onClick={() => onArtworkSelect(artwork)}>
+                            <div className="flex-1 min-w-0">
                               <h4 className="font-medium text-white text-sm truncate">
                                 {artwork.title}
                               </h4>

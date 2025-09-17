@@ -1,5 +1,6 @@
 export interface Artwork {
   id: string;
+  slug: string;
   title: string;
   artist: string;
   year: number;

@@ -65,6 +65,7 @@
     "medium": "Medium",
     "description": "Description",
     "period": "Historical Period",
+    "viewDetailPage": "View Detail Page",
     "viewInGoogle": "View in Google Arts & Culture",
     "closeDetails": "Close artwork details"
   },

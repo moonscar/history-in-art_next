@@ -2,6 +2,7 @@
 import { supabase } from '../lib/supabase';
 import { Database } from '../lib/database.types';
 import { Artwork, TimeRange, Location } from '../types';
+import { slugify, generateUniqueSlug } from '../utils/slugify';
 
 type ArtworkRow = Database['public']['Tables']['artworks']['Row'];
 type ArtworkInsert = Database['public']['Tables']['artworks']['Insert'];
@@ -10,6 +11,7 @@ type ArtworkUpdate = Database['public']['Tables']['artworks']['Update'];
 // Convert database row to frontend Artwork type
 const convertToArtwork = (row: ArtworkRow): Artwork => ({
   id: row.id,
+  slug: row.slug || slugify(row.title),
   title: row.title,
   artist: row.artist_name || 'Unknown Artist',
   year: row.creation_year || 0,
@@ -27,6 +29,7 @@ const convertToArtwork = (row: ArtworkRow): Artwork => ({
 
 // Convert frontend Artwork to database insert format
 const convertToInsert = (artwork: Partial<Artwork>): ArtworkInsert => ({
+  slug: artwork.slug,
   title: artwork.title || '',
   artist_name: artwork.artist,
   creation_year: artwork.year,
@@ -122,6 +125,47 @@ export class ArtworkService {
     } catch (error) {
       console.error('Error in getArtworkById:', error);
       return null;
+    }
+  }
+
+  // Get artwork by slug
+  static async getArtworkBySlug(slug: string): Promise<Artwork | null> {
+    try {
+      const { data, error } = await supabase
+        .from('artworks')
+        .select('*')
+        .eq('slug', slug)
+        .single();
+
+      if (error) {
+        console.error('Error fetching artwork by slug:', error);
+        return null;
+      }
+
+      return data ? convertToArtwork(data) : null;
+    } catch (error) {
+      console.error('Error in getArtworkBySlug:', error);
+      return null;
+    }
+  }
+
+  // Get all artwork slugs for static generation
+  static async getAllArtworkSlugs(): Promise<string[]> {
+    try {
+      const { data, error } = await supabase
+        .from('artworks')
+        .select('slug')
+        .not('slug', 'is', null);
+
+      if (error) {
+        console.error('Error fetching artwork slugs:', error);
+        return [];
+      }
+
+      return data.map(item => item.slug).filter(Boolean);
+    } catch (error) {
+      console.error('Error in getAllArtworkSlugs:', error);
+      return [];
     }
   }
 

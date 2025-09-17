@@ -1,8 +1,9 @@
 import React from 'react';
+import Link from 'next/link';
 import { Artwork } from '../types';
 import SEOHead from './SEOHead';
 import { generateArtworkStructuredData } from '../utils/structuredData';
-import { X, MapPin, Calendar, User, Palette, Image, Heart, Check } from 'lucide-react';
+import { X, MapPin, Calendar, User, Palette, Image, Heart, Check, ExternalLink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 
@@ -181,6 +182,14 @@ const ArtworkModal: React.FC<ArtworkModalProps> = ({
                       {getButtonText()}
                     </button>
                   )}
+                  
+                  <Link
+                    href={`/artwork/${artwork.slug}`}
+                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 px-6 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+                  >
+                    <ExternalLink size={18} className="mr-2" />
+                    {t('artwork.viewDetailPage')}
+                  </Link>
                   
                   <button 
                     className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-6 rounded-lg font-medium transition-all duration-300 transform hover:scale-105"
