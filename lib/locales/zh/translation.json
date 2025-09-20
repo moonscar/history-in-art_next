@@ -7,6 +7,7 @@
   },
   "nav": {
     "explore": "探索历史",
+    "themes": "主题画作",
     "stories": "发现故事",
     "guide": "使用指南",
     "about": "关于开发者"
@@ -65,6 +66,7 @@
     "medium": "创作媒介",
     "description": "作品描述",
     "period": "历史时期",
+    "viewDetailPage": "查看详情页",
     "viewDetailPage": "查看详情页",
     "viewInGoogle": "在 Google Arts & Culture 中查看",
     "closeDetails": "关闭艺术品详情"

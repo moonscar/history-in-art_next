@@ -7,6 +7,7 @@
   },
   "nav": {
     "explore": "Explore",
+    "themes": "Themes",
     "stories": "Discover",
     "guide": "Guide",
     "about": "About"
@@ -65,6 +66,7 @@
     "medium": "Medium",
     "description": "Description",
     "period": "Historical Period",
+    "viewDetailPage": "View Detail Page",
     "viewDetailPage": "View Detail Page",
     "viewInGoogle": "View in Google Arts & Culture",
     "closeDetails": "Close artwork details"

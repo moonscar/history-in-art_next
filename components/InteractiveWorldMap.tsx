@@ -315,8 +315,8 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
             <h3 class="font-bold text-blue-400 mb-2">${location.country}</h3>
             <p class="text-gray-300 text-sm mb-2">${count} artwork${count !== 1 ? 's' : ''}</p>
             ${count > 0 ? 
-              `<button onclick="window.queryCountry('${location.country}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded text-sm">{t('map.viewArtworks')}</button>` : 
-              `<p class="text-gray-500 text-xs">{t('map.noArtworks')}</p>`
+              `<button onclick="window.queryCountry('${location.country}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded text-sm">${t('map.viewArtworks')}</button>` : 
+              `<p class="text-gray-500 text-xs">${t('map.noArtworks')}</p>`
             }
           </div>
         `);
@@ -340,7 +340,7 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
       const location: Location = {
         country: countryName,
         city: ''
-      }
+      };
       onLocationTimeSelect(location, timeRange);
     };
 
@@ -591,7 +591,7 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
                               className="w-12 h-12 object-cover rounded"
                             />
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-white text-sm truncate">
+                              <h4 className="font-medium text-sm text-white truncate">
                                 {artwork.title}
                               </h4>
                               <div className="flex items-center text-xs text-gray-300 mt-1">

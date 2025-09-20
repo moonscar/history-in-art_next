@@ -55,6 +55,12 @@ export default function Navbar({
               {t("nav.explore")}
             </Link>
             <Link
+              href="/themes"
+              className="text-gray-300 hover:text-white transition-colors font-medium"
+            >
+              {t("nav.themes")}
+            </Link>
+            <Link
               href="/stories"
               className="text-gray-300 hover:text-white transition-colors font-medium"
             >
