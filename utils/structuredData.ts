@@ -86,6 +86,33 @@ export const generateArtworkStructuredData = (artwork: Artwork) => ({
   }
 });
 
+// Generate structured data for theme
+export const generateThemeStructuredData = (theme: { title: string; description: string; imageUrl: string; artworks?: any[] }) => ({
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": theme.title,
+  "description": theme.description,
+  "image": theme.imageUrl,
+  "numberOfItems": theme.artworks?.length || 0,
+  "collectionSize": theme.artworks?.length || 0,
+  "inLanguage": "zh-CN",
+  "mainEntity": {
+    "@type": "ItemList",
+    "numberOfItems": theme.artworks?.length || 0,
+    "itemListElement": (theme.artworks || []).slice(0, 10).map((artwork: any, index: number) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "item": {
+        "@type": "VisualArtwork",
+        "name": artwork.title,
+        "creator": artwork.artist,
+        "dateCreated": artwork.year?.toString(),
+        "url": `https://history-in-art.org/artwork/${artwork.slug}`
+      }
+    }))
+  }
+});
+
 // Generate structured data for art collection
 export const generateCollectionStructuredData = (artworks: Artwork[], location?: Location, timeRange?: { start: number; end: number }) => {
   const baseData = {

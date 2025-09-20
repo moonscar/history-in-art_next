@@ -1,6 +1,6 @@
 export interface Artwork {
   id: string;
-  slug: string;
+  slug: string; 
   title: string;
   artist: string;
   year: number;
@@ -33,4 +33,14 @@ export interface HistoricalPeriod {
   start: number;
   end: number;
   color: string;
+}
+
+export interface Theme {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  artworks?: Artwork[];
+  artworkCount?: number;
 }

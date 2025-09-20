@@ -169,6 +169,47 @@ export class ArtworkService {
     }
   }
 
+  // Get artwork by slug
+  static async getArtworkBySlug(slug: string): Promise<Artwork | null> {
+    try {
+      const { data, error } = await supabase
+        .from('artworks')
+        .select('*')
+        .eq('slug', slug)
+        .single();
+
+      if (error) {
+        console.error('Error fetching artwork by slug:', error);
+        return null;
+      }
+
+      return data ? convertToArtwork(data) : null;
+    } catch (error) {
+      console.error('Error in getArtworkBySlug:', error);
+      return null;
+    }
+  }
+
+  // Get all artwork slugs for static generation
+  static async getAllArtworkSlugs(): Promise<string[]> {
+    try {
+      const { data, error } = await supabase
+        .from('artworks')
+        .select('slug')
+        .not('slug', 'is', null);
+
+      if (error) {
+        console.error('Error fetching artwork slugs:', error);
+        return [];
+      }
+
+      return data.map(item => item.slug).filter(Boolean);
+    } catch (error) {
+      console.error('Error in getAllArtworkSlugs:', error);
+      return [];
+    }
+  }
+
   static async getArtworkCountsByCountry(filters?: {
     timeRange?: TimeRange;
   }): Promise<{ [country: string]: number }> {
