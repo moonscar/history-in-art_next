@@ -5,7 +5,7 @@ import { ArrowLeft, Calendar, MapPin, Palette, Image as ImageIcon } from 'lucide
 import { getTranslations, getLocale } from 'next-intl/server';
 import { ThemeService } from '@/services/themeService';
 import SEOHead from '@/components/SEOHead';
-import ArtworkCard from '@/components/ArtworkCard';
+import ArtworkCard from '@/components/ArtworkCardServer';
 import { generateCollectionStructuredData } from '@/utils/structuredData';
 
 interface ThemeDetailPageProps {
@@ -147,9 +147,7 @@ export default async function ThemeDetailPage({ params }: ThemeDetailPageProps) 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {theme.artworks.map((artwork) => (
                   <ArtworkCard
-                    key={artwork.id}
                     artwork={artwork}
-                    onClick={() => {}} // Will be handled by the Link in ArtworkCard
                   />
                 ))}
               </div>
