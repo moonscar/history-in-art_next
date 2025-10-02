@@ -1,8 +1,8 @@
-# ArtSpace Navigator
+# History in Art
 
-一个基于时空维度的智能艺术品导航系统，结合AI助手、交互式地图和时间轴，让用户通过自然语言探索世界各地的艺术珍品。
+一个基于时空维度的智能艺术品导航系统，结合AI助手、交互式地图和时间轴，让用户通过自然语言探索世界各地的艺术珍品，通过真实且具有视觉冲击力的作品帮助历史爱好者了解历史。
 
-![ArtSpace Navigator](https://images.pexels.com/photos/1563356/pexels-photo-1563356.jpeg?auto=compress&cs=tinysrgb&w=800)
+![History in Art](https://images.pexels.com/photos/1563356/pexels-photo-1563356.jpeg?auto=compress&cs=tinysrgb&w=800)
 
 ## ✨ 核心功能
 
