@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Database } from '../lib/database.types';
 import { Theme, Artwork } from '../types';
 import { slugify } from '../utils/slugify';
+import { normalizeTags } from '../utils/tags';
 
 type ThemeRow = Database['public']['Tables']['themes']['Row'];
 type ThemeInsert = Database['public']['Tables']['themes']['Insert'];
@@ -117,6 +118,12 @@ export class ThemeService {
         .filter(ta => ta.artworks) // Filter out any null artworks
         .map(ta => {
           const artwork = ta.artworks as any;
+          const tags = normalizeTags(artwork.tags);
+          const movementTag = tags.find((tag: string) => tag.startsWith('movement:'));
+          const mediumTag = tags.find((tag: string) => tag.startsWith('medium:'));
+          const movement = movementTag ? movementTag.replace('movement:', '').trim() : '';
+          const medium = mediumTag ? mediumTag.replace('medium:', '').trim() : '';
+
           return {
             id: artwork.id,
             slug: artwork.slug || slugify(artwork.title),
@@ -131,8 +138,9 @@ export class ThemeService {
             },
             imageUrl: artwork.image_url || 'https://images.pexels.com/photos/1563356/pexels-photo-1563356.jpeg?auto=compress&cs=tinysrgb&w=400',
             description: artwork.description || 'No description available',
-            movement: Array.isArray(artwork.tags) ? artwork.tags.find((tag: string) => tag.includes('movement:'))?.replace('movement:', '') || 'Unknown Movement' : 'Unknown Movement',
-            medium: Array.isArray(artwork.tags) ? artwork.tags.find((tag: string) => tag.includes('medium:'))?.replace('medium:', '') || 'Unknown Medium' : 'Unknown Medium'
+            movement: movement || 'Unknown Movement',
+            medium: medium || 'Unknown Medium',
+            tags
           };
         });
 

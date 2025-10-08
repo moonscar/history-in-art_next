@@ -14,6 +14,7 @@ export interface Artwork {
   description: string;
   movement: string;
   medium: string;
+  tags?: string[];
 }
 
 export interface TimeRange {

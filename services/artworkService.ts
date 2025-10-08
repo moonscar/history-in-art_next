@@ -3,48 +3,67 @@ import { supabase } from '../lib/supabase';
 import { Database } from '../lib/database.types';
 import { Artwork, TimeRange, Location } from '../types';
 import { slugify, generateUniqueSlug } from '../utils/slugify';
+import { normalizeTags } from '../utils/tags';
 
 type ArtworkRow = Database['public']['Tables']['artworks']['Row'];
 type ArtworkInsert = Database['public']['Tables']['artworks']['Insert'];
 type ArtworkUpdate = Database['public']['Tables']['artworks']['Update'];
 
 // Convert database row to frontend Artwork type
-const convertToArtwork = (row: ArtworkRow): Artwork => ({
-  id: row.id,
-  slug: row.slug || slugify(row.title),
-  title: row.title,
-  artist: row.artist_name || 'Unknown Artist',
-  year: row.creation_year || 0,
-  period: row.period || '',
-  location: {
-    country: row.country || 'Unknown Country',
-    city: row.city || 'Unknown City',
-    coordinates: [row.longitude || 0, row.latitude || 0] as [number, number]
-  },
-  imageUrl: row.image_url || 'https://images.pexels.com/photos/1563356/pexels-photo-1563356.jpeg?auto=compress&cs=tinysrgb&w=400',
-  description: row.description || 'No description available',
-  movement: Array.isArray(row.tags) ? row.tags.find(tag => tag.includes('movement:'))?.replace('movement:', '') || 'Unknown Movement' : 'Unknown Movement',
-  medium: Array.isArray(row.tags) ? row.tags.find(tag => tag.includes('medium:'))?.replace('medium:', '') || 'Unknown Medium' : 'Unknown Medium'
-});
+const convertToArtwork = (row: ArtworkRow): Artwork => {
+  const tags = normalizeTags(row.tags);
+  const movementTag = tags.find(tag => tag.startsWith('movement:'));
+  const mediumTag = tags.find(tag => tag.startsWith('medium:'));
+  const movement = movementTag ? movementTag.replace('movement:', '').trim() : '';
+  const medium = mediumTag ? mediumTag.replace('medium:', '').trim() : '';
+
+  return {
+    id: row.id,
+    slug: row.slug || slugify(row.title),
+    title: row.title,
+    artist: row.artist_name || 'Unknown Artist',
+    year: row.creation_year || 0,
+    period: row.period || '',
+    location: {
+      country: row.country || 'Unknown Country',
+      city: row.city || 'Unknown City',
+      coordinates: [row.longitude || 0, row.latitude || 0] as [number, number]
+    },
+    imageUrl: row.image_url || 'https://images.pexels.com/photos/1563356/pexels-photo-1563356.jpeg?auto=compress&cs=tinysrgb&w=400',
+    description: row.description || 'No description available',
+    movement: movement || 'Unknown Movement',
+    medium: medium || 'Unknown Medium',
+    tags
+  };
+};
 
 // Convert frontend Artwork to database insert format
-const convertToInsert = (artwork: Partial<Artwork>): ArtworkInsert => ({
-  slug: artwork.slug,
-  title: artwork.title || '',
-  artist_name: artwork.artist,
-  creation_year: artwork.year,
-  period: artwork.period,
-  country: artwork.location?.country,
-  city: artwork.location?.city,
-  latitude: artwork.location?.coordinates?.[1],
-  longitude: artwork.location?.coordinates?.[0],
-  description: artwork.description,
-  image_url: artwork.imageUrl,
-  tags: [
-    ...(artwork.movement ? [`movement:${artwork.movement}`] : []),
-    ...(artwork.medium ? [`medium:${artwork.medium}`] : [])
-  ]
-});
+const convertToInsert = (artwork: Partial<Artwork>): ArtworkInsert => {
+  const baseTags = normalizeTags(artwork.tags);
+  const movementTag = artwork.movement ? `movement:${artwork.movement}` : null;
+  const mediumTag = artwork.medium ? `medium:${artwork.medium}` : null;
+  const combinedTags = [...baseTags];
+
+  if (movementTag) combinedTags.push(movementTag);
+  if (mediumTag) combinedTags.push(mediumTag);
+
+  const uniqueTags = Array.from(new Set(combinedTags));
+
+  return {
+    slug: artwork.slug,
+    title: artwork.title || '',
+    artist_name: artwork.artist,
+    creation_year: artwork.year,
+    period: artwork.period,
+    country: artwork.location?.country,
+    city: artwork.location?.city,
+    latitude: artwork.location?.coordinates?.[1],
+    longitude: artwork.location?.coordinates?.[0],
+    description: artwork.description,
+    image_url: artwork.imageUrl,
+    tags: uniqueTags.length > 0 ? uniqueTags : null
+  };
+};
 
 export class ArtworkService {
   // Get all artworks with optional filters
@@ -376,13 +395,12 @@ export class ArtworkService {
 
       const movements = new Set<string>();
       data.forEach(item => {
-        if (Array.isArray(item.tags)) {
-          item.tags.forEach((tag: string) => {
-            if (tag.startsWith('movement:')) {
-              movements.add(tag.replace('movement:', ''));
-            }
-          });
-        }
+        const tags = normalizeTags(item.tags);
+        tags.forEach((tag: string) => {
+          if (tag.startsWith('movement:')) {
+            movements.add(tag.replace('movement:', ''));
+          }
+        });
       });
 
       return Array.from(movements).sort();
