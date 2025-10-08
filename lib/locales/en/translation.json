@@ -130,7 +130,14 @@
     "sortByArtist": "By Artist",
     "sortByDateAdded": "By Date Added",
     "totalArtworks": "Total {count} artworks",
-    "close": "Close Gallery"
+    "close": "Close Gallery",
+    "share": "Share Gallery",
+    "shareGenerating": "Preparing...",
+    "shareSuccess": "Gallery image copied to clipboard.",
+    "shareError": "Unable to share gallery. Please try again.",
+    "shareUnsupported": "Clipboard image sharing is not supported in this browser.",
+    "shareImageTitle": "History in Art — Gallery Highlights",
+    "shareImageSubtitle": "{count, plural, one {# highlighted artwork} other {# highlighted artworks}}"
   },
   "results": {
     "title": "Search Results",

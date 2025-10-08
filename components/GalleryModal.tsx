@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Artwork } from '../types';
-import { X, Trash2, Heart, Calendar, User, MapPin, Palette } from 'lucide-react';
+import { X, Trash2, Heart, Share2, Loader2 } from 'lucide-react';
 import ArtworkCard from './ArtworkCard';
+import { generateGalleryShareImage } from '../utils/galleryShare';
 
 interface GalleryModalProps {
   artworks: Artwork[];
@@ -21,6 +22,8 @@ const GalleryModal: React.FC<GalleryModalProps> = ({
 }) => {
   const t = useTranslations();
   const [sortBy, setSortBy] = useState('year');
+  const [shareState, setShareState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [shareMessage, setShareMessage] = useState('');
 
   // Sort artworks based on selected criteria
   const sortedArtworks = useMemo(() => {
@@ -46,6 +49,56 @@ const GalleryModal: React.FC<GalleryModalProps> = ({
     }
   };
 
+  useEffect(() => {
+    if (shareState === 'success' || shareState === 'error') {
+      const timer = window.setTimeout(() => {
+        setShareState('idle');
+        setShareMessage('');
+      }, 4000);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [shareState]);
+
+  const handleShareGallery = async () => {
+    if (!sortedArtworks.length || shareState === 'loading') {
+      return;
+    }
+
+    setShareState('loading');
+    setShareMessage('');
+
+    try {
+      if (
+        typeof navigator === 'undefined' ||
+        !navigator.clipboard ||
+        typeof navigator.clipboard.write !== 'function' ||
+        typeof ClipboardItem === 'undefined'
+      ) {
+        throw new Error('clipboard-unsupported');
+      }
+
+      const blob = await generateGalleryShareImage(sortedArtworks, {
+        title: t('gallery.shareImageTitle'),
+        subtitle: t('gallery.shareImageSubtitle', { count: sortedArtworks.length })
+      });
+
+      const clipboardItem = new ClipboardItem({ 'image/png': blob });
+      await navigator.clipboard.write([clipboardItem]);
+
+      setShareState('success');
+      setShareMessage(t('gallery.shareSuccess'));
+    } catch (error) {
+      console.error('Failed to share gallery', error);
+      setShareState('error');
+      if (error instanceof Error && error.message === 'clipboard-unsupported') {
+        setShareMessage(t('gallery.shareUnsupported'));
+      } else {
+        setShareMessage(t('gallery.shareError'));
+      }
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
       <div className="bg-gray-900 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
@@ -66,6 +119,20 @@ const GalleryModal: React.FC<GalleryModalProps> = ({
           <div className="flex items-center space-x-3">
             {artworks.length > 0 && (
               <button
+                onClick={handleShareGallery}
+                disabled={shareState === 'loading'}
+                className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-900 text-white rounded-lg transition-colors text-sm"
+              >
+                {shareState === 'loading' ? (
+                  <Loader2 size={16} className="mr-2 animate-spin" />
+                ) : (
+                  <Share2 size={16} className="mr-2" />
+                )}
+                {shareState === 'loading' ? t('gallery.shareGenerating') : t('gallery.share')}
+              </button>
+            )}
+            {artworks.length > 0 && (
+              <button
                 onClick={handleClearGallery}
                 className="flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm"
               >
@@ -82,6 +149,13 @@ const GalleryModal: React.FC<GalleryModalProps> = ({
             </button>
           </div>
         </div>
+        {shareMessage && (
+          <div className="px-6 pt-2 text-xs">
+            <span className={shareState === 'error' ? 'text-red-400' : 'text-emerald-400'}>
+              {shareMessage}
+            </span>
+          </div>
+        )}
 
         {/* Sort Controls */}
         {artworks.length > 0 && (
