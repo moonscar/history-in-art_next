@@ -322,6 +322,7 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
         `);
 
       layer.bindPopup(popup);
+      layer.openPopup();
     } catch (error) {
       console.error('Error getting country info:', error);
       // 回退到原来的逻辑
@@ -359,7 +360,23 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
 
   // Group artworks by location to create clusters
   const artworksByLocation = artworks.reduce((acc, artwork) => {
-    const key = `${artwork.location.coordinates[0]},${artwork.location.coordinates[1]}`;
+    const coordinates = artwork.location.coordinates;
+    if (!coordinates || coordinates.length !== 2) {
+      return acc;
+    }
+
+    const [lng, lat] = coordinates;
+
+    // Skip artworks with missing or placeholder coordinates
+    if (
+      lng === 0 && lat === 0 ||
+      !Number.isFinite(lng) ||
+      !Number.isFinite(lat)
+    ) {
+      return acc;
+    }
+
+    const key = `${lng},${lat}`;
     if (!acc[key]) {
       acc[key] = [];
     }
@@ -506,27 +523,36 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
           />
           
           {/* Country Heatmap Layer */}
-          <GeoJSON
-            data={worldCountries as any}
-            style={countryStyle}
-            onEachFeature={(feature, layer) => {
-              layer.on({
-                click: () => onCountryClick(feature, layer),
-                mouseover: (e) => {
-                  const layer = e.target;
-                  layer.setStyle({
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.9
-                  });
-                },
-                mouseout: (e) => {
-                  const layer = e.target;
-                  layer.setStyle(countryStyle(feature));
-                }
-              });
-            }}
-          />
+          {showHeatmap && (
+            <GeoJSON
+              data={worldCountries as any}
+              style={countryStyle}
+              onEachFeature={(feature, layer) => {
+                layer.on({
+                  click: () => onCountryClick(feature, layer),
+                  mouseover: (e) => {
+                    const targetLayer = e.target;
+                    const baseStyle = countryStyle(feature);
+                    targetLayer.setStyle({
+                      fillColor: baseStyle.fillColor,
+                      color: baseStyle.color,
+                      weight: 2,
+                      dashArray: '',
+                      fillOpacity: Math.min(
+                        1,
+                        (baseStyle.fillOpacity ?? 0.7) + 0.2
+                      )
+                    });
+                    targetLayer.bringToFront();
+                  },
+                  mouseout: (e) => {
+                    const layer = e.target;
+                    layer.setStyle(countryStyle(feature));
+                  }
+                });
+              }}
+            />
+          )}
           
           <MapClickHandler onLocationClick={handleMapClick} />
           
