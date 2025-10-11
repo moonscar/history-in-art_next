@@ -115,13 +115,19 @@ export const generateThemeStructuredData = (theme: { title: string; description:
 
 // Generate structured data for art collection
 export const generateCollectionStructuredData = (artworks: Artwork[], location?: Location, timeRange?: { start: number; end: number }) => {
+  const locationLabel = location
+    ? [location.city, location.country].filter(Boolean).join(', ')
+    : null;
+
   const baseData = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     "name": location 
-      ? `${location}的艺术作品集合` 
+      ? `${locationLabel || location.country || '未知地区'}的艺术作品集合` 
       : "世界艺术作品集合",
-    "description": `包含${artworks.length}件艺术作品的精选集合`,
+    "description": locationLabel
+      ? `包含${artworks.length}件来自${locationLabel}的艺术作品`
+      : `包含${artworks.length}件艺术作品的精选集合`,
     "numberOfItems": artworks.length,
     "collectionSize": artworks.length,
     "inLanguage": "zh-CN",
@@ -155,7 +161,7 @@ export const generateCollectionStructuredData = (artworks: Artwork[], location?:
       ...baseData,
       "spatialCoverage": {
         "@type": "Place",
-        "name": location
+        "name": locationLabel || location.country || 'Unknown Location'
       }
     };
   }

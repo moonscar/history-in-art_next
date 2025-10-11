@@ -1,10 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import { Artwork, TimeRange, Location } from '@/types';
 import { useArtworks } from '@/hooks/useArtworks';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { parseURLParams, updateURL, getInitialStateFromURL } from '@/utils/urlParams';
+import { parseURLParams, updateURL, generateURLParams, getInitialStateFromURL, URLParams } from '@/utils/urlParams';
 import SEOHead from '@/components/SEOHead';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { 
@@ -60,6 +60,7 @@ function App() {
     movement?: string;
     artist?: string;
   }>(initialState.chatQuery);
+  const lastUrlSnapshotRef = useRef<string | null>(null);
 
   // Use the custom hook to fetch artworks from database
   const {
@@ -134,7 +135,7 @@ function App() {
     }
   };
 
-  const handleLocationTimeUpdate = (location: Location, timeRange: TimeRange) => {
+  const handleLocationTimeUpdate = async (location: Location, timeRange: TimeRange) => {
     // 更新时间轴
     setTimeRange(timeRange);
     
@@ -145,8 +146,7 @@ function App() {
       timeRange
     }));
     
-    // 自动显示该地区的艺术品结果
-    setTimeout(async () => {
+    try {
       const locationArtworks = await getArtworksByLocation(location, timeRange);
       setResultsData({
         artworks: locationArtworks,
@@ -154,7 +154,9 @@ function App() {
         timeRange
       });
       setShowResults(true);
-    }, 500); // 给时间让筛选条件先更新
+    } catch (fetchError) {
+      console.error('Error fetching location artworks:', fetchError);
+    }
   };
 
   const handleResultsClose = () => {
@@ -231,6 +233,10 @@ function App() {
 
   // Generate dynamic SEO data based on current state
   const generateDynamicSEO = () => {
+    const locationLabel = chatQuery.location
+      ? [chatQuery.location.city, chatQuery.location.country].filter(Boolean).join(', ')
+      : null;
+
     let title = t('site.title');
     let description = t('site.description');
     let keywords = locale === 'zh' 
@@ -238,38 +244,26 @@ function App() {
       : "artwork,art navigation,world art,historical art,art map,art timeline,renaissance,baroque,impressionism,modern art";
     let robots = "index, follow";
 
-    if (chatQuery.location || chatQuery.movement || chatQuery.artist) {
-      const filters = [];
-      if (chatQuery.location) filters.push(chatQuery.location);
-      if (chatQuery.movement) filters.push(chatQuery.movement);
-      if (chatQuery.artist) filters.push(chatQuery.artist);
-      
-      // 更新 URL 参数
-      updateURL({
-        country: chatQuery.location?.country,
-        city: chatQuery.location?.city,
-        start: timeRange.start !== 1400 ? timeRange.start : undefined,
-        end: timeRange.end !== 2024 ? timeRange.end : undefined,
-        artist: chatQuery.artist,
-        movement: chatQuery.movement
-      });
-      
+    const filters: string[] = [];
+    if (locationLabel) filters.push(locationLabel);
+    if (chatQuery.movement) filters.push(chatQuery.movement);
+    if (chatQuery.artist) filters.push(chatQuery.artist);
+
+    if (filters.length > 0) {
       const siteName = t('site.name');
+
       if (locale === 'zh') {
-        title = `${filters.join(' ')} 艺术作品 | ${siteName}`;
-        description = `探索${filters.join('、')}相关的艺术作品，发现${timeRange.start}-${timeRange.end}年间的艺术珍品。`;
+        const zhFilters = filters.join('、');
+        title = `${zhFilters} 艺术作品 | ${siteName}`;
+        description = `探索${zhFilters}相关的艺术作品，发现${timeRange.start}-${timeRange.end}年间的艺术珍品。`;
       } else {
-        title = `${filters.join(' ')} Artworks | ${siteName}`;
-        description = `Explore artworks related to ${filters.join(', ')}, discover art treasures from ${timeRange.start}-${timeRange.end}.`;
+        const enFilters = filters.join(', ');
+        title = `${enFilters} Artworks | ${siteName}`;
+        description = `Explore artworks related to ${enFilters}, discover art treasures from ${timeRange.start}-${timeRange.end}.`;
       }
+
       keywords = `${filters.join(',')},${keywords}`;
     } else if (timeRange.start !== 1400 || timeRange.end !== 2024) {
-      // 更新 URL 参数
-      updateURL({
-        start: timeRange.start !== 1400 ? timeRange.start : undefined,
-        end: timeRange.end !== 2024 ? timeRange.end : undefined
-      });
-      
       const siteName = t('site.name');
       if (locale === 'zh') {
         title = `${timeRange.start}-${timeRange.end}年艺术作品 | ${siteName}`;
@@ -278,9 +272,6 @@ function App() {
         title = `${timeRange.start}-${timeRange.end} Artworks | ${siteName}`;
         description = `Explore world artworks from ${timeRange.start}-${timeRange.end}, discover historical art treasures through interactive maps and timelines.`;
       }
-    } else {
-      // 如果没有特殊筛选条件，清除 URL 参数
-      updateURL({}, true);
     }
     
     return { title, description, keywords, robots };
@@ -322,6 +313,52 @@ function App() {
     { lang: "en", url: `https://history-in-art.org?lng=en` },
     { lang: "x-default", url: "https://history-in-art.org" }
   ];
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const hasLocationFilter = Boolean(chatQuery.location?.country || chatQuery.location?.city);
+    const hasMovementFilter = Boolean(chatQuery.movement);
+    const hasArtistFilter = Boolean(chatQuery.artist);
+
+    let params: URLParams = {};
+    let replaceHistory = false;
+
+    if (hasLocationFilter || hasMovementFilter || hasArtistFilter) {
+      params = {
+        country: chatQuery.location?.country || undefined,
+        city: chatQuery.location?.city || undefined,
+        start: timeRange.start !== 1400 ? timeRange.start : undefined,
+        end: timeRange.end !== 2024 ? timeRange.end : undefined,
+        artist: chatQuery.artist,
+        movement: chatQuery.movement
+      };
+    } else if (timeRange.start !== 1400 || timeRange.end !== 2024) {
+      params = {
+        start: timeRange.start !== 1400 ? timeRange.start : undefined,
+        end: timeRange.end !== 2024 ? timeRange.end : undefined
+      };
+    } else {
+      replaceHistory = true;
+    }
+
+    const queryString = generateURLParams(params);
+    const snapshot = `${replaceHistory ? 'replace' : 'push'}|${queryString}`;
+
+    if (lastUrlSnapshotRef.current === snapshot) {
+      return;
+    }
+
+    lastUrlSnapshotRef.current = snapshot;
+    updateURL(params, replaceHistory);
+  }, [
+    chatQuery.location?.country,
+    chatQuery.location?.city,
+    chatQuery.movement,
+    chatQuery.artist,
+    timeRange.start,
+    timeRange.end
+  ]);
 
   // Show loading state
   if (loading && dbArtworks.length === 0) {
