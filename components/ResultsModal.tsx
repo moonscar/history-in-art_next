@@ -11,6 +11,7 @@ const MIN_YEAR = -3000;
 const MAX_YEAR = 2024;
 const TAG_MAX_LIMIT = 200;
 const TAGS_PER_ARTWORK_LIMIT = 3;
+const RESULTS_PAGE_SIZE = 18;
 
 const capitalizeWords = (value: string) =>
   value.replace(/\b\w/g, (char) => char.toUpperCase());
@@ -58,6 +59,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
   const [isApplyingTimeRange, setIsApplyingTimeRange] = useState(false);
   const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
   const tagSelectorRef = React.useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(RESULTS_PAGE_SIZE);
   const baseStartYear = timeRange?.start ?? 1400;
   const baseEndYear = timeRange?.end ?? 2024;
 
@@ -195,6 +197,20 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
     setSelectedTags((prev) => prev.filter((item) => item !== tag));
   };
 
+  React.useEffect(() => {
+    setVisibleCount(RESULTS_PAGE_SIZE);
+  }, [artworks, selectedTags, selectedCreator, sortBy]);
+
+  const visibleArtworks = useMemo(() => {
+    return filteredAndSortedArtworks.slice(0, visibleCount);
+  }, [filteredAndSortedArtworks, visibleCount]);
+
+  const hasMoreArtworks = visibleCount < filteredAndSortedArtworks.length;
+
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => Math.min(prev + RESULTS_PAGE_SIZE, filteredAndSortedArtworks.length));
+  };
+
   const handleResetFilters = () => {
     setSelectedTags([]);
     setTagSearchTerm('');
@@ -203,6 +219,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
     setSortBy('year');
     setStartYearInput(String(baseStartYear));
     setEndYearInput(String(baseEndYear));
+    setVisibleCount(RESULTS_PAGE_SIZE);
   };
 
   const handleApplyTimeRange = async () => {
@@ -464,17 +481,37 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredAndSortedArtworks.map((artwork) => (
-                <ArtworkCard
-                  key={artwork.id}
-                  artwork={artwork}
-                  onClick={() => onArtworkSelect(artwork)}
-                  onAddToGallery={onAddToGallery}
-                  isAddedToGallery={galleryArtworkIds.has(artwork.id)}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {visibleArtworks.map((artwork) => (
+                  <ArtworkCard
+                    key={artwork.id}
+                    artwork={artwork}
+                    onClick={() => onArtworkSelect(artwork)}
+                    onAddToGallery={onAddToGallery}
+                    isAddedToGallery={galleryArtworkIds.has(artwork.id)}
+                  />
+                ))}
+              </div>
+
+              <div className="mt-6 flex items-center justify-between text-xs text-gray-400">
+                <span>
+                  {t('results.showingRange', {
+                    shown: Math.min(visibleCount, filteredAndSortedArtworks.length),
+                    total: filteredAndSortedArtworks.length
+                  })}
+                </span>
+                {hasMoreArtworks && (
+                  <button
+                    type="button"
+                    onClick={handleLoadMore}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors"
+                  >
+                    {t('results.loadMore')}
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>

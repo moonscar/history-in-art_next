@@ -141,7 +141,9 @@
     "tagSearchInputPlaceholder": "Type to search tags...",
     "noMatchingTags": "No matching tags",
     "tagCount": "({count})",
-    "removeTag": "Remove {tag}"
+    "removeTag": "Remove {tag}",
+    "loadMore": "Load more",
+    "showingRange": "Showing {shown} of {total}"
   }
 
 }

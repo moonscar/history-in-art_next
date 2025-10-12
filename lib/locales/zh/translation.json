@@ -141,6 +141,8 @@
     "tagSearchInputPlaceholder": "输入关键词筛选标签...",
     "noMatchingTags": "没有匹配的标签",
     "tagCount": "（{count} 件）",
-    "removeTag": "移除 {tag}"
+    "removeTag": "移除 {tag}",
+    "loadMore": "加载更多",
+    "showingRange": "已显示 {shown} / {total}"
   }
 }

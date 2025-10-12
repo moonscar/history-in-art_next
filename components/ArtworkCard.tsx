@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Artwork } from '../types';
 import { MapPin, Calendar, User, Palette, Check, Heart } from 'lucide-react';
+import Image from 'next/image';
 
 interface ArtworkCardProps {
   artwork: Artwork;
@@ -71,15 +72,15 @@ const ArtworkCard: React.FC<ArtworkCardProps> = ({
         </button>
       )}
       
-      <figure className="relative overflow-hidden">
-        <img 
+      <figure className="relative h-48 overflow-hidden">
+        <Image 
           src={artwork.imageUrl} 
           alt={`${artwork.title} by ${artwork.artist}, ${artwork.year}`}
-          className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+          className="object-cover transition-transform duration-300 group-hover:scale-110"
           itemProp="image"
+          fill
+          sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
           loading="lazy"
-          width="400"
-          height="192"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         <div className="absolute top-3 right-3 bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-medium">
