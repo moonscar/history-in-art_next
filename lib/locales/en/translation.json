@@ -71,23 +71,6 @@
     "viewInGoogle": "View in Google Arts & Culture",
     "closeDetails": "Close artwork details"
   },
-  "results": {
-    "title": "Search Results",
-    "artworkCount": "{count} artworks",
-    "filters": "Filters and Sorting",
-    "reset": "Reset",
-    "tag": "Artwork Tags",
-    "creator": "Creator",
-    "sortBy": "Sort By",
-    "sortByYear": "By Year",
-    "sortByTitle": "By Title", 
-    "sortByArtist": "By Artist",
-    "allTags": "All Tags",
-    "allCreators": "All Creators",
-    "noResults": "No matching artworks found",
-    "noResultsDesc": "Try adjusting your filter criteria or search again.",
-    "applyTimeRange": "Apply Time Range"
-  },
   "loading": {
     "title": "Loading...",
     "artworks": "Artwork data is loading, please wait...",
@@ -150,11 +133,15 @@
     "sortByYear": "By Year",
     "sortByTitle": "By Title", 
     "sortByArtist": "By Artist",
-    "allTags": "All Tags",
     "allCreators": "All Creators",
     "noResults": "No matching artworks found",
     "noResultsDesc": "Try adjusting your filter criteria or search again.",
-    "applyTimeRange": "Apply Time Range"
+    "applyTimeRange": "Apply Time Range",
+    "tagSearchPlaceholder": "Select tags to refine the results",
+    "tagSearchInputPlaceholder": "Type to search tags...",
+    "noMatchingTags": "No matching tags",
+    "tagCount": "({count})",
+    "removeTag": "Remove {tag}"
   }
 
 }

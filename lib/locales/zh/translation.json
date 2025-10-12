@@ -71,23 +71,6 @@
     "viewInGoogle": "在 Google Arts & Culture 中查看",
     "closeDetails": "关闭艺术品详情"
   },
-  "results": {
-    "title": "搜索结果",
-    "artworkCount": "{count} 件作品",
-    "filters": "筛选和排序",
-    "reset": "重置",
-    "tag": "作品标签",
-    "creator": "创作者",
-    "sortBy": "排序方式",
-    "sortByYear": "按年代",
-    "sortByTitle": "按标题",
-    "sortByArtist": "按艺术家",
-    "allTags": "全部标签",
-    "allCreators": "全部创作者",
-    "noResults": "未找到匹配的艺术品",
-    "noResultsDesc": "请尝试调整筛选条件或重新搜索。",
-    "applyTimeRange": "应用时间范围"
-  },
   "loading": {
     "title": "加载中...",
     "artworks": "艺术品数据正在加载中，请稍候...",
@@ -150,10 +133,14 @@
     "sortByYear": "按年代",
     "sortByTitle": "按标题",
     "sortByArtist": "按艺术家",
-    "allTags": "全部标签",
     "allCreators": "全部创作者",
     "noResults": "未找到匹配的艺术品",
     "noResultsDesc": "请尝试调整筛选条件或重新搜索。",
-    "applyTimeRange": "应用时间范围"
+    "applyTimeRange": "应用时间范围",
+    "tagSearchPlaceholder": "选择标签可继续精确筛选结果",
+    "tagSearchInputPlaceholder": "输入关键词筛选标签...",
+    "noMatchingTags": "没有匹配的标签",
+    "tagCount": "（{count} 件）",
+    "removeTag": "移除 {tag}"
   }
 }

@@ -1,13 +1,16 @@
-import React, { useState, useMemo } from 'react';
+'use client';
+
+import React, { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Artwork, Location } from '../types';
 import { X, Filter, MapPin, Calendar, Palette, RotateCcw, RefreshCw } from 'lucide-react';
 import ArtworkCard from './ArtworkCard';
 
-const ALL_TAGS = '__ALL_TAGS__';
 const ALL_CREATORS = '__ALL_CREATORS__';
 const MIN_YEAR = -3000;
 const MAX_YEAR = 2024;
+const TAG_MAX_LIMIT = 200;
+const TAGS_PER_ARTWORK_LIMIT = 3;
 
 const capitalizeWords = (value: string) =>
   value.replace(/\b\w/g, (char) => char.toUpperCase());
@@ -46,12 +49,15 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
   galleryArtworkIds = new Set()
 }) => {
   const t = useTranslations();
-  const [selectedTag, setSelectedTag] = useState(ALL_TAGS);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagSearchTerm, setTagSearchTerm] = useState('');
   const [selectedCreator, setSelectedCreator] = useState(ALL_CREATORS);
   const [sortBy, setSortBy] = useState('year');
   const [startYearInput, setStartYearInput] = useState(() => String(timeRange?.start ?? 1400));
   const [endYearInput, setEndYearInput] = useState(() => String(timeRange?.end ?? 2024));
   const [isApplyingTimeRange, setIsApplyingTimeRange] = useState(false);
+  const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
+  const tagSelectorRef = React.useRef<HTMLDivElement>(null);
   const baseStartYear = timeRange?.start ?? 1400;
   const baseEndYear = timeRange?.end ?? 2024;
 
@@ -60,21 +66,85 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
     setStartYearInput(String(baseStartYear));
     setEndYearInput(String(baseEndYear));
   }, [baseStartYear, baseEndYear]);
-  const tagOptions = useMemo(() => {
-    const mappedTags = new Map<string, string>();
-    artworks.forEach((artwork) => {
-      if (Array.isArray(artwork.tags)) {
-        artwork.tags.forEach((tag) => {
-          if (tag && !mappedTags.has(tag)) {
-            mappedTags.set(tag, formatTagLabel(tag));
-          }
-        });
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tagSelectorRef.current && !tagSelectorRef.current.contains(event.target as Node)) {
+        setIsTagDropdownOpen(false);
       }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  const tagStats = useMemo(() => {
+    const stats = new Map<string, { label: string; count: number }>();
+    artworks.forEach((artwork) => {
+      if (!Array.isArray(artwork.tags) || artwork.tags.length === 0) {
+        return;
+      }
+
+      const uniqueTags = new Set(artwork.tags.filter(Boolean));
+      uniqueTags.forEach((tag) => {
+        if (!tag) return;
+        if (!stats.has(tag)) {
+          stats.set(tag, { label: formatTagLabel(tag), count: 0 });
+        }
+        const entry = stats.get(tag);
+        if (entry) {
+          entry.count += 1;
+        }
+      });
     });
-    return Array.from(mappedTags.entries()).sort((a, b) =>
-      a[1].localeCompare(b[1])
+
+    const sorted = Array.from(stats.entries())
+      .map(([value, data]) => ({
+        value,
+        label: data.label,
+        count: data.count
+      }))
+      .sort((a, b) => {
+        if (b.count !== a.count) {
+          return b.count - a.count;
+        }
+        return a.label.localeCompare(b.label);
+      });
+
+    if (sorted.length === 0) {
+      return sorted;
+    }
+
+    const dynamicLimit = Math.max(
+      0,
+      Math.min(
+        TAG_MAX_LIMIT,
+        Math.max(artworks.length * TAGS_PER_ARTWORK_LIMIT, TAGS_PER_ARTWORK_LIMIT)
+      )
     );
+
+    return sorted.slice(0, dynamicLimit || sorted.length);
   }, [artworks]);
+
+  const tagInfoMap = useMemo(() => {
+    const map = new Map<string, { label: string; count: number }>();
+    tagStats.forEach((entry) => {
+      map.set(entry.value, { label: entry.label, count: entry.count });
+    });
+    return map;
+  }, [tagStats]);
+
+  const filteredTagOptions = useMemo(() => {
+    const term = tagSearchTerm.trim().toLowerCase();
+    if (!term) {
+      return tagStats;
+    }
+    return tagStats.filter((tag) => {
+      const haystack = `${tag.label} ${tag.value}`.toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [tagStats, tagSearchTerm]);
 
   const creators = useMemo(() => {
     const uniqueCreators = [
@@ -88,9 +158,10 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
     let filtered = artworks.filter(artwork => {
       const matchesCreator =
         selectedCreator === ALL_CREATORS || artwork.artist === selectedCreator;
+      const tagSet = Array.isArray(artwork.tags) ? new Set(artwork.tags) : null;
       const matchesTag =
-        selectedTag === ALL_TAGS ||
-        (Array.isArray(artwork.tags) && artwork.tags.includes(selectedTag));
+        selectedTags.length === 0 ||
+        (tagSet !== null && selectedTags.every((tag) => tagSet.has(tag)));
       return matchesCreator && matchesTag;
     });
 
@@ -109,10 +180,25 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
     });
 
     return filtered;
-  }, [artworks, selectedCreator, selectedTag, sortBy]);
+  }, [artworks, selectedCreator, selectedTags, sortBy]);
+
+  const handleTagToggle = (tag: string) => {
+    setSelectedTags((prev) => {
+      if (prev.includes(tag)) {
+        return prev.filter((item) => item !== tag);
+      }
+      return [...prev, tag];
+    });
+  };
+
+  const handleTagRemove = (tag: string) => {
+    setSelectedTags((prev) => prev.filter((item) => item !== tag));
+  };
 
   const handleResetFilters = () => {
-    setSelectedTag(ALL_TAGS);
+    setSelectedTags([]);
+    setTagSearchTerm('');
+    setIsTagDropdownOpen(false);
     setSelectedCreator(ALL_CREATORS);
     setSortBy('year');
     setStartYearInput(String(baseStartYear));
@@ -245,22 +331,89 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
+            <div ref={tagSelectorRef}>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 {t('results.tag')}
               </label>
-              <select
-                value={selectedTag}
-                onChange={(e) => setSelectedTag(e.target.value)}
-                className="w-full bg-gray-800 text-white border border-gray-700 rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none"
+              <div
+                className="bg-gray-800 border border-gray-700 rounded-lg"
+                onClick={() => setIsTagDropdownOpen(true)}
               >
-                <option value={ALL_TAGS}>{t('results.allTags')}</option>
-                {tagOptions.map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+                <div className="px-3 pt-3 pb-2">
+                  {selectedTags.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedTags.map((tag) => {
+                        const info = tagInfoMap.get(tag);
+                        const label = info?.label ?? formatTagLabel(tag);
+                        return (
+                          <span
+                            key={tag}
+                            className="inline-flex items-center space-x-2 bg-blue-600/80 text-white text-xs px-2 py-1 rounded-full"
+                          >
+                            <span>{label}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleTagRemove(tag)}
+                              className="p-0.5 rounded-full hover:bg-blue-500 focus:outline-none focus:ring-1 focus:ring-white transition-colors"
+                              aria-label={t('results.removeTag', { tag: label })}
+                            >
+                              <X size={12} />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500">
+                      {t('results.tagSearchPlaceholder')}
+                    </p>
+                  )}
+                </div>
+                <div className="px-3 pb-3">
+                  <input
+                    type="text"
+                    value={tagSearchTerm}
+                    onChange={(e) => setTagSearchTerm(e.target.value)}
+                    placeholder={t('results.tagSearchInputPlaceholder')}
+                    className="w-full bg-gray-900 text-white border border-gray-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                    onFocus={() => setIsTagDropdownOpen(true)}
+                  />
+                </div>
+                {isTagDropdownOpen && (
+                  <div className="border-t border-gray-700 max-h-40 overflow-y-auto">
+                    {filteredTagOptions.length === 0 ? (
+                      <div className="px-3 py-3 text-xs text-gray-500">
+                        {t('results.noMatchingTags')}
+                      </div>
+                    ) : (
+                      filteredTagOptions.map(({ value, label, count }) => {
+                        const isSelected = selectedTags.includes(value);
+                        return (
+                          <button
+                            type="button"
+                            key={value}
+                            onClick={() => handleTagToggle(value)}
+                            className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors ${
+                              isSelected
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-200 hover:bg-gray-700'
+                            }`}
+                          >
+                            <span className="truncate">{label}</span>
+                            <span
+                              className={`ml-3 text-xs ${
+                                isSelected ? 'text-blue-100' : 'text-gray-400'
+                              }`}
+                            >
+                              {t('results.tagCount', { count })}
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>
