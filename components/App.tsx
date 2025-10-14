@@ -194,6 +194,13 @@ function App() {
   };
   const handleLocationTimeSelect = async (location: Location, currentTimeRange: TimeRange) => {
     try {
+      setTimeRange(currentTimeRange);
+      setChatQuery(prev => ({
+        ...prev,
+        location,
+        timeRange: currentTimeRange
+      }));
+
       const locationArtworks = await getArtworksByLocation(location, currentTimeRange);
       setResultsData({
         artworks: locationArtworks,
