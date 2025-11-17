@@ -4,6 +4,7 @@ import { ArrowLeft, Palette, Calendar, Image as ImageIcon } from 'lucide-react';
 import { getTranslations, getLocale } from 'next-intl/server';
 import { ThemeService } from '@/services/themeService';
 import SEOHead from '@/components/SEOHead';
+import { AdSense } from '@/components/AdSense';
 import { generateWebsiteStructuredData } from '@/utils/structuredData';
 
 export default async function ThemesPage() {
@@ -61,6 +62,7 @@ export default async function ThemesPage() {
 
         {/* Themes Grid */}
         <main className="max-w-7xl mx-auto px-4 py-12">
+          <AdSense mode="auto" />
           {themes.length === 0 ? (
             <div className="text-center py-16">
               <div className="w-20 h-20 bg-gray-700 rounded-full mx-auto mb-6 flex items-center justify-center">

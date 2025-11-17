@@ -1,12 +1,12 @@
 import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, MapPin, Calendar, User, Palette, Image, Heart, ExternalLink } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { ArrowLeft, MapPin, Calendar, User, Palette, Image, ExternalLink } from 'lucide-react';
 import { ArtworkService } from '@/services/artworkService';
 import { generateArtworkStructuredData } from '@/utils/structuredData';
 import SEOHead from '@/components/SEOHead';
 import { Artwork } from '@/types';
+import { AdSense } from '@/components/AdSense';
 
 interface ArtworkDetailPageProps {
   params: {
@@ -103,6 +103,7 @@ async function ArtworkDetailPage({ params }: ArtworkDetailPageProps) {
 
         {/* Content */}
         <main className="max-w-6xl mx-auto px-4 py-12">
+          <AdSense mode="auto" />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Image Section */}
             <section className="space-y-6">
