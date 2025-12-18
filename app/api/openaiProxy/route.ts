@@ -1,7 +1,93 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+type RateLimitState = {
+  count: number;
+  resetAt: number;
+};
+
+const rateLimitState = new Map<string, RateLimitState>();
+
+function getClientIp(request: NextRequest): string {
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    const first = forwardedFor.split(',')[0]?.trim();
+    if (first) return first;
+  }
+
+  return request.ip || 'unknown';
+}
+
+function parseIntWithDefault(value: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function applyRateLimit(request: NextRequest): {
+  allowed: boolean;
+  limit: number;
+  remaining: number;
+  resetAt: number;
+} {
+  const limit = parseIntWithDefault(process.env.OPENAI_PROXY_RATE_LIMIT_MAX, 30);
+  const windowMs = parseIntWithDefault(process.env.OPENAI_PROXY_RATE_LIMIT_WINDOW_MS, 60_000);
+
+  const now = Date.now();
+  const ip = getClientIp(request);
+  const existing = rateLimitState.get(ip);
+
+  if (!existing || now >= existing.resetAt) {
+    const next = { count: 1, resetAt: now + windowMs };
+    rateLimitState.set(ip, next);
+    return { allowed: true, limit, remaining: Math.max(0, limit - 1), resetAt: next.resetAt };
+  }
+
+  if (existing.count >= limit) {
+    return { allowed: false, limit, remaining: 0, resetAt: existing.resetAt };
+  }
+
+  existing.count += 1;
+  rateLimitState.set(ip, existing);
+  return { allowed: true, limit, remaining: Math.max(0, limit - existing.count), resetAt: existing.resetAt };
+}
+
+function getBearerToken(request: NextRequest): string | null {
+  const auth = request.headers.get('authorization');
+  if (auth?.toLowerCase().startsWith('bearer ')) return auth.slice(7).trim();
+
+  const headerToken = request.headers.get('x-openai-proxy-token');
+  return headerToken?.trim() || null;
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+    }
+
+    const proxyToken = process.env.OPENAI_PROXY_TOKEN;
+    if (proxyToken) {
+      const provided = getBearerToken(request);
+      if (!provided || provided !== proxyToken) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    }
+
+    const rate = applyRateLimit(request);
+    if (!rate.allowed) {
+      const retryAfterSeconds = Math.max(1, Math.ceil((rate.resetAt - Date.now()) / 1000));
+      return new NextResponse(JSON.stringify({ error: 'Too many requests' }), {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Retry-After': String(retryAfterSeconds),
+          'X-RateLimit-Limit': String(rate.limit),
+          'X-RateLimit-Remaining': String(rate.remaining),
+          'X-RateLimit-Reset': String(rate.resetAt)
+        }
+      });
+    }
+
     const { messages } = await request.json();
     
     // 输入验证（保持原逻辑）
@@ -38,10 +124,14 @@ export async function POST(request: NextRequest) {
     const userMessage = { role: "user", content: userInput };
     
     // 保持原有 OpenAI 调用逻辑
+    const controller = new AbortController();
+    const timeoutMs = parseIntWithDefault(process.env.OPENAI_PROXY_TIMEOUT_MS, 12_000);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -49,8 +139,11 @@ export async function POST(request: NextRequest) {
         messages: [systemPrompt, userMessage],
         max_tokens: 100,
         temperature: 0.1,
-      })
+      }),
+      signal: controller.signal,
+      cache: 'no-store'
     });
+    clearTimeout(timeout);
     
     if (!response.ok) {
       throw new Error(`OpenAI API error: ${response.status}`);
@@ -68,12 +161,12 @@ export async function POST(request: NextRequest) {
       
       return NextResponse.json(parsed);
     } catch (parseError) {
-      console.error('Response format error:', aiResponse);
+      console.error('Response format error');
       return NextResponse.json({ error: 'Invalid response format' }, { status: 500 });
     }
     
   } catch (error) {
-    console.error('OpenAI error:', error);
+    console.error('OpenAI error');
     return NextResponse.json({ error: 'OpenAI request failed' }, { status: 500 });
   }
 }

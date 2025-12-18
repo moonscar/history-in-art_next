@@ -144,13 +144,14 @@ export default async function ThemeDetailPage({ params }: ThemeDetailPageProps) 
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {theme.artworks.map((artwork) => (
-                  <ArtworkCard
-                    artwork={artwork}
-                  />
-                ))}
-              </div>
+	              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+	                {theme.artworks.map((artwork) => (
+	                  <ArtworkCard
+	                    key={artwork.id || artwork.slug}
+	                    artwork={artwork}
+	                  />
+	                ))}
+	              </div>
             )}
           </section>
 

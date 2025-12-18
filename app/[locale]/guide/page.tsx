@@ -188,7 +188,7 @@ function GuidePage() {
             <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl p-6">
               <h3 className="text-lg font-bold text-white mb-3">如何使用AI助手？</h3>
               <p className="text-gray-300">
-                在右上角的聊天界面中，您可以用自然语言描述您想要探索的内容，例如"显示文艺复兴时期意大利的画作"或"查找19世纪法国印象派作品"。AI助手会自动为您筛选相关艺术品并更新地图和时间轴。
+                在右上角的聊天界面中，您可以用自然语言描述您想要探索的内容，例如&quot;显示文艺复兴时期意大利的画作&quot;或&quot;查找19世纪法国印象派作品&quot;。AI助手会自动为您筛选相关艺术品并更新地图和时间轴。
               </p>
             </div>
             
