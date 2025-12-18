@@ -271,7 +271,7 @@ export class ThemeService {
         const query = supabase
           .from('artworks')
           .select(selectColumns, { count: 'exact' })
-          .contains('tags', [candidateTag])
+          .filter('tags', 'cs', JSON.stringify([candidateTag]))
           .order('map_display_priority', { ascending: false })
           .order('creation_year', { ascending: true })
           .limit(limit);

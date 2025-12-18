@@ -107,7 +107,7 @@ export class ArtworkService {
       }
 
       if (filters?.movement) {
-        query = query.contains('tags', [`movement:${filters.movement}`]);
+        query = query.filter('tags', 'cs', JSON.stringify([`movement:${filters.movement}`]));
       }
 
       if (filters?.limit) {
