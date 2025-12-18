@@ -7,6 +7,7 @@ import { normalizeTags } from '../utils/tags';
 type ThemeRow = Database['public']['Tables']['themes']['Row'];
 type ThemeInsert = Database['public']['Tables']['themes']['Insert'];
 type ArtworkRow = Database['public']['Tables']['artworks']['Row'];
+type ThemeArtworkRow = Database['public']['Tables']['theme_artworks']['Row'];
 
 type ThemeArtworkJoinRow = {
   display_order: number | null;
@@ -101,6 +102,39 @@ function escapeIlike(value: string): string {
   return value.replace(/%/g, '').replace(/,/g, '').trim();
 }
 
+function isFetchFailedError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  if (!('message' in error)) return false;
+  const message = (error as { message?: unknown }).message;
+  return typeof message === 'string' && message.includes('fetch failed');
+}
+
+async function wait(ms: number) {
+  await new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.max(1, Math.min(concurrency, items.length || 1));
+
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (true) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      if (currentIndex >= items.length) return;
+      results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
+}
+
 function convertArtworkRowToArtwork(row: Pick<
   ArtworkRow,
   | 'id'
@@ -165,10 +199,104 @@ const convertToInsert = (theme: Partial<Theme>): ThemeInsert => ({
 });
 
 export class ThemeService {
+  private static async getDerivedThemeCount(criteria: ThemeCriteria) {
+    if (criteria.kind === 'curated') return 0;
+
+    const selectColumns = 'id';
+
+    const runQueryWithRetry = async <T>(
+      run: () => PromiseLike<{ data: T | null; error: unknown; count: number | null }>
+    ) => {
+      const first = await run();
+      if (!first.error || !isFetchFailedError(first.error)) return first;
+      await wait(200);
+      return await run();
+    };
+
+    if (criteria.kind === 'century') {
+      const { error, count } = await runQueryWithRetry(() =>
+        supabase
+          .from('artworks')
+          .select(selectColumns, { count: 'exact', head: true })
+          .gte('creation_year', criteria.startYear)
+          .lte('creation_year', criteria.endYear)
+      );
+
+      if (error) {
+        console.error('Error fetching derived theme count:', error);
+        return 0;
+      }
+
+      return count || 0;
+    }
+
+    if (criteria.kind === 'city') {
+      const city = escapeIlike(criteria.city);
+      const { error, count } = await runQueryWithRetry(() =>
+        supabase
+          .from('artworks')
+          .select(selectColumns, { count: 'exact', head: true })
+          .ilike('city', city ? `%${city}%` : criteria.city)
+      );
+
+      if (error) {
+        console.error('Error fetching derived theme count:', error);
+        return 0;
+      }
+
+      return count || 0;
+    }
+
+    const candidateTags = getCandidateTags(criteria.tag);
+    let lastError: unknown = null;
+
+    for (const candidateTag of candidateTags) {
+      const { error, count } = await runQueryWithRetry(() =>
+        supabase
+          .from('artworks')
+          .select(selectColumns, { count: 'exact', head: true })
+          .filter('tags', 'cs', JSON.stringify([candidateTag]))
+      );
+
+      if (error) {
+        lastError = error;
+        continue;
+      }
+
+      if (count) return count;
+    }
+
+    const term = escapeIlike(criteria.tag.replace(/-/g, ' '));
+    if (!term) return 0;
+
+    const { error, count } = await runQueryWithRetry(() =>
+      supabase
+        .from('artworks')
+        .select(selectColumns, { count: 'exact', head: true })
+        .or(`title.ilike.%${term}%,description.ilike.%${term}%`)
+    );
+
+    if (error) {
+      console.error('Error fetching derived theme count:', error || lastError);
+      return 0;
+    }
+
+    return count || 0;
+  }
+
   private static async getDerivedThemeArtworks(criteria: ThemeCriteria, limit: number) {
     if (criteria.kind === 'curated') {
       return { artworks: [] as Artwork[], count: 0 };
     }
+
+    const runQueryWithRetry = async <T>(
+      run: () => PromiseLike<{ data: T | null; error: unknown; count: number | null }>
+    ) => {
+      const first = await run();
+      if (!first.error || !isFetchFailedError(first.error)) return first;
+      await wait(200);
+      return await run();
+    };
 
     const selectColumns = `
       id,
@@ -196,7 +324,7 @@ export class ThemeService {
         .order('creation_year', { ascending: true })
         .limit(limit);
 
-      const { data, error, count } = await query;
+      const { data, error, count } = await runQueryWithRetry(() => query);
       if (error) {
         console.error('Error fetching derived theme artworks:', error);
         return { artworks: [] as Artwork[], count: 0 };
@@ -235,7 +363,7 @@ export class ThemeService {
         .order('creation_year', { ascending: true })
         .limit(limit);
 
-      const { data, error, count } = await query;
+      const { data, error, count } = await runQueryWithRetry(() => query);
       if (error) {
         console.error('Error fetching derived theme artworks:', error);
         return { artworks: [] as Artwork[], count: 0 };
@@ -266,6 +394,7 @@ export class ThemeService {
 
     if (criteria.kind === 'tag') {
       const candidateTags = getCandidateTags(criteria.tag);
+      let lastError: unknown = null;
 
       for (const candidateTag of candidateTags) {
         const query = supabase
@@ -276,9 +405,9 @@ export class ThemeService {
           .order('creation_year', { ascending: true })
           .limit(limit);
 
-        const { data, error, count } = await query;
+        const { data, error, count } = await runQueryWithRetry(() => query);
         if (error) {
-          console.error('Error fetching derived theme artworks:', error);
+          lastError = error;
           continue;
         }
 
@@ -320,9 +449,9 @@ export class ThemeService {
         .order('creation_year', { ascending: true })
         .limit(limit);
 
-      const { data, error, count } = await query;
+      const { data, error, count } = await runQueryWithRetry(() => query);
       if (error) {
-        console.error('Error fetching derived theme artworks:', error);
+        console.error('Error fetching derived theme artworks:', error || lastError);
         return { artworks: [] as Artwork[], count: 0 };
       }
 
@@ -364,32 +493,35 @@ export class ThemeService {
         throw themesError;
       }
 
-      // Get artwork counts for each theme
       const themes = (themesData || []) as ThemeRow[];
-      const themesWithCounts = await Promise.all(
-        themes.map(async (theme) => {
-          const { count: curatedCount, error: curatedCountError } = await supabase
-            .from('theme_artworks')
-            .select('*', { count: 'exact', head: true })
-            .eq('theme_id', theme.id);
 
-          if (curatedCountError) {
-            console.error('Error fetching artwork count for theme:', theme.id, curatedCountError);
-          }
+      const { data: themeArtworkRows, error: themeArtworkError } = await supabase
+        .from('theme_artworks')
+        .select('theme_id');
 
-          if (curatedCount && curatedCount > 0) {
-            return convertToTheme(theme, undefined, curatedCount);
-          }
+      if (themeArtworkError) {
+        console.error('Error fetching theme artwork rows:', themeArtworkError);
+      }
 
-          const criteria = getThemeCriteria(theme.slug);
-          if (criteria.kind !== 'curated') {
-            const derived = await this.getDerivedThemeArtworks(criteria, 1);
-            return convertToTheme(theme, undefined, derived.count);
-          }
+      const curatedCountByThemeId = new Map<string, number>();
+      for (const row of ((themeArtworkRows || []) as Array<Pick<ThemeArtworkRow, 'theme_id'>>)) {
+        curatedCountByThemeId.set(row.theme_id, (curatedCountByThemeId.get(row.theme_id) || 0) + 1);
+      }
 
-          return convertToTheme(theme, undefined, 0);
-        })
-      );
+      const themesWithCounts = await mapWithConcurrency(themes, 5, async (theme) => {
+        const curatedCount = curatedCountByThemeId.get(theme.id) || 0;
+        if (curatedCount > 0) {
+          return convertToTheme(theme, undefined, curatedCount);
+        }
+
+        const criteria = getThemeCriteria(theme.slug);
+        if (criteria.kind !== 'curated') {
+          const derivedCount = await this.getDerivedThemeCount(criteria);
+          return convertToTheme(theme, undefined, derivedCount);
+        }
+
+        return convertToTheme(theme, undefined, 0);
+      });
 
       return themesWithCounts;
     } catch (error) {
