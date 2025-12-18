@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -27,6 +27,68 @@ interface InteractiveWorldMapProps {
   onArtworkSelect: (artwork: Artwork) => void;
   onAddToGallery?: (artwork: Artwork) => void;
   galleryArtworkIds?: Set<string>;
+}
+
+type WorldCountryProperties = {
+  name?: string;
+  'ISO3166-1-Alpha-2'?: string;
+  'ISO3166-1-Alpha-3'?: string;
+};
+
+type WorldCountriesGeoJson = {
+  type: string;
+  features: Array<{
+    type: string;
+    properties: WorldCountryProperties;
+    geometry: unknown;
+  }>;
+};
+
+const normalizeCountryKey = (value: string) => value.trim().toLowerCase();
+
+const countryAliasToGeoName: Record<string, string> = {
+  usa: 'United States of America',
+  us: 'United States of America',
+  'u.s.': 'United States of America',
+  'u.s.a.': 'United States of America',
+  'united states': 'United States of America',
+  'united states of america of america': 'United States of America',
+  uk: 'United Kingdom',
+  england: 'United Kingdom',
+  wales: 'United Kingdom',
+  scotland: 'United Kingdom',
+  'united kingdom of great britain and ireland': 'United Kingdom',
+  uae: 'United Arab Emirates',
+  'russian federation': 'Russia',
+  'czech republic': 'Czechia',
+  'the netherlands': 'Netherlands',
+  holland: 'Netherlands',
+  'republic of korea': 'South Korea',
+  'korea, republic of': 'South Korea',
+  'south korea': 'South Korea',
+  'north korea': 'North Korea',
+  'korea, democratic people\'s republic of': 'North Korea'
+};
+
+function niceRound(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 1;
+  if (value <= 1) return 1;
+
+  const exponent = Math.floor(Math.log10(value));
+  const base = Math.pow(10, exponent);
+  const candidates = [1, 2, 3, 5, 10].map(mult => mult * base);
+  let best = candidates[0];
+  let bestDistance = Math.abs(value - best);
+
+  for (const candidate of candidates.slice(1)) {
+    const distance = Math.abs(value - candidate);
+    if (distance < bestDistance) {
+      best = candidate;
+      bestDistance = distance;
+    }
+  }
+
+  return Math.max(1, Math.round(best));
 }
 
 // Custom marker icons for different periods
@@ -168,64 +230,87 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
     country: string;
   } | null>(null);
 
+  const geoCountryKeyToName = useMemo(() => {
+    const geo = worldCountries as unknown as WorldCountriesGeoJson;
+    const map = new Map<string, string>();
+
+    for (const feature of geo.features || []) {
+      const name = feature.properties?.name;
+      if (!name) continue;
+
+      map.set(normalizeCountryKey(name), name);
+
+      const iso2 = feature.properties?.['ISO3166-1-Alpha-2'];
+      if (iso2) map.set(normalizeCountryKey(iso2), name);
+
+      const iso3 = feature.properties?.['ISO3166-1-Alpha-3'];
+      if (iso3) map.set(normalizeCountryKey(iso3), name);
+    }
+
+    for (const [alias, canonical] of Object.entries(countryAliasToGeoName)) {
+      map.set(normalizeCountryKey(alias), canonical);
+    }
+
+    return map;
+  }, []);
+
   // Fetch country counts when component mounts or time range changes
   useEffect(() => {
     const fetchCountryCounts = async () => {
-      const rawCounts = await ArtworkService.getArtworkCountsByCountry({ timeRange });
+      const mappedCounts: { [country: string]: number } = {};
+      const rows = await ArtworkService.getArtworkCountsByCountry({ timeRange });
 
-      // 获取GeoJSON中的有效国家名
-      const validCountries = new Set(
-       worldCountries.features.map(f => f.properties.name).filter(Boolean)
-      );
+      for (const { country: rawCountry, count } of rows) {
+        const mappedName = geoCountryKeyToName.get(normalizeCountryKey(rawCountry));
+        if (!mappedName) continue;
+        mappedCounts[mappedName] = (mappedCounts[mappedName] || 0) + count;
+      }
 
-      // 只保留匹配的国家
-      const filteredCounts = Object.fromEntries(
-       Object.entries(rawCounts).filter(([location]) => validCountries.has(location))
-      );
-
-      setCountryCounts(filteredCounts);
+      setCountryCounts(mappedCounts);
     };
 
     fetchCountryCounts();
-  }, [timeRange]);
+  }, [timeRange, geoCountryKeyToName]);
 
-  // 计算动态分级断点
-  const calculateBreakpoints = (counts: number[]): number[] => {
-    if (counts.length === 0) return [0, 1, 5, 10, 50];
+  const colors = ['#374151', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#7F1D1D'];
+  const positiveClassCount = colors.length - 1;
 
-    const sortedCounts = counts.sort((a, b) => a - b);
-    const minCount = sortedCounts[0];
-    const maxCount = sortedCounts[sortedCounts.length - 1];
+  const calculateThresholds = (counts: number[]): number[] => {
+    const positiveCounts = counts.filter(count => count > 0);
+    if (positiveCounts.length === 0) return [0, 1];
 
-    // 如果所有值都相同，返回简单分级
-    if (minCount === maxCount) {
-      return minCount === 0 ? [0, 1] : [0, Math.ceil(minCount / 2), minCount];
+    const maxCount = Math.max(...positiveCounts);
+    const minCount = 1;
+
+    if (maxCount <= 1) return [0, 1];
+
+    const ratio = Math.pow(maxCount / minCount, 1 / positiveClassCount);
+    const raw = Array.from({ length: positiveClassCount }, (_, index) =>
+      minCount * Math.pow(ratio, index)
+    );
+
+    const rounded = raw.map((value, index) => (index === 0 ? 1 : niceRound(value)));
+    const uniqueSorted = Array.from(new Set(rounded)).sort((a, b) => a - b);
+
+    const thresholds: number[] = [0];
+    for (const value of uniqueSorted) {
+      const previous = thresholds[thresholds.length - 1] || 0;
+      thresholds.push(Math.max(previous + 1, value));
+      if (thresholds.length === colors.length) break;
     }
 
-    // 使用分位数方法计算断点
-    const getPercentile = (arr: number[], percentile: number): number => {
-      const index = Math.ceil(arr.length * percentile) - 1;
-      return arr[Math.max(0, index)];
-    };
+    while (thresholds.length < colors.length) {
+      thresholds.push((thresholds[thresholds.length - 1] || 0) + 1);
+    }
 
-    return [
-      0, // 无数据
-      getPercentile(sortedCounts, 0.2), // 20分位数
-      getPercentile(sortedCounts, 0.4), // 40分位数
-      getPercentile(sortedCounts, 0.6), // 60分位数
-      getPercentile(sortedCounts, 0.8), // 80分位数
-      maxCount // 最大值
-    ].filter((value, index, arr) => index === 0 || value > arr[index - 1]); // 去重
+    return thresholds;
   };
 
-  // 获取当前数据的断点
   const counts = Object.values(countryCounts).filter(count => count > 0);
-  const breakpoints = calculateBreakpoints(counts);
+  const breakpoints = calculateThresholds(counts);
 
   // Get color based on artwork count (动态版本)
   const getHeatmapColor = (count: number): string => {
-    const colors = ['#374151', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#DC2626'];
-
     if (count === 0) return colors[0]; // Gray for no artworks
 
     // 根据断点确定颜色
@@ -240,7 +325,6 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
 
   // 生成图例标签
   const generateLegendLabels = (): Array<{color: string, label: string, range: [number, number]}> => {
-    const colors = ['#374151', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#DC2626'];
     const labels: Array<{color: string, label: string, range: [number, number]}> = [];
 
     // 无数据
@@ -250,23 +334,21 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
       range: [0, 0]
     });
 
-    // 动态分级标签
     for (let i = 1; i < breakpoints.length; i++) {
-      const start = i === 1 ? 1 : breakpoints[i - 1] + 1;
-      const end = breakpoints[i];
-      
-      let label: string;
-      if (i === breakpoints.length - 1) {
-        // label = `${start}+ 件`;
-        label = t("map.artworkCount", { range: start });
-      } else {
-        // label = start === end ? `${start} 件` : `${start}-${end} 件`;
-        label = start === end ? t("map.artworkCount", { range: `${start}` }) : t("map.artworkCount", { range: `${start} - ${end}`});
-      }
-      
+      const start = breakpoints[i];
+      const next = breakpoints[i + 1];
+      const isLast = i === breakpoints.length - 1;
+      const end = isLast ? start : Math.max(start, next - 1);
+
+      const rangeLabel = isLast
+        ? `${start}+`
+        : start === end
+          ? `${start}`
+          : `${start} - ${end}`;
+
       labels.push({
         color: colors[Math.min(i, colors.length - 1)],
-        label,
+        label: t('map.artworkCount', { range: rangeLabel }),
         range: [start, end]
       });
     }
@@ -274,8 +356,9 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
     return labels;
   };
 
-  // Get max count for reference
-  const maxCount = Math.max(...Object.values(countryCounts), 0);
+	  // Get max count for reference
+	  const maxCount = Math.max(...Object.values(countryCounts), 0);
+	  const heatmapLayerKey = `${timeRange.start}-${timeRange.end}-${maxCount}-${Object.keys(countryCounts).length}`;
 
   // 获取图例数据
   const legendData = generateLegendLabels();
@@ -326,11 +409,11 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
     } catch (error) {
       console.error('Error getting country info:', error);
       // 回退到原来的逻辑
-      const countryName = feature.properties.NAME;
+      const countryName = feature.properties.name;
       const count = countryCounts[countryName] || 0;
       
       if (count > 0) {
-        onLocationTimeSelect(countryName, timeRange);
+        onLocationTimeSelect({ country: countryName, city: '' }, timeRange);
       }
     }
   };
@@ -522,13 +605,14 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           />
           
-          {/* Country Heatmap Layer */}
-          {showHeatmap && (
-            <GeoJSON
-              data={worldCountries as any}
-              style={countryStyle}
-              onEachFeature={(feature, layer) => {
-                layer.on({
+	          {/* Country Heatmap Layer */}
+	          {showHeatmap && (
+	            <GeoJSON
+	              key={heatmapLayerKey}
+	              data={worldCountries as any}
+	              style={countryStyle}
+	              onEachFeature={(feature, layer) => {
+	                layer.on({
                   click: () => onCountryClick(feature, layer),
                   mouseover: (e) => {
                     const targetLayer = e.target;

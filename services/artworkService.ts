@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { supabase } from '../lib/supabase';
 import { Database } from '../lib/database.types';
 import { Artwork, TimeRange, Location } from '../types';
@@ -8,6 +7,16 @@ import { normalizeTags } from '../utils/tags';
 type ArtworkRow = Database['public']['Tables']['artworks']['Row'];
 type ArtworkInsert = Database['public']['Tables']['artworks']['Insert'];
 type ArtworkUpdate = Database['public']['Tables']['artworks']['Update'];
+type ArtworkSlugRow = Pick<ArtworkRow, 'slug'>;
+type ArtworkCountryRow = Pick<ArtworkRow, 'country'>;
+type ArtworkArtistRow = Pick<ArtworkRow, 'artist_name'>;
+type ArtworkTagsRow = Pick<ArtworkRow, 'tags'>;
+
+type NonEmptyString = string & { __brand: 'NonEmptyString' };
+
+function isNonEmptyString(value: unknown): value is NonEmptyString {
+  return typeof value === 'string' && value.trim().length > 0;
+}
 
 // Convert database row to frontend Artwork type
 const convertToArtwork = (row: ArtworkRow): Artwork => {
@@ -50,17 +59,17 @@ const convertToInsert = (artwork: Partial<Artwork>): ArtworkInsert => {
   const uniqueTags = Array.from(new Set(combinedTags));
 
   return {
-    slug: artwork.slug,
+    slug: artwork.slug ?? null,
     title: artwork.title || '',
-    artist_name: artwork.artist,
-    creation_year: artwork.year,
-    period: artwork.period,
-    country: artwork.location?.country,
-    city: artwork.location?.city,
-    latitude: artwork.location?.coordinates?.[1],
-    longitude: artwork.location?.coordinates?.[0],
-    description: artwork.description,
-    image_url: artwork.imageUrl,
+    artist_name: artwork.artist ?? null,
+    creation_year: artwork.year ?? null,
+    period: artwork.period ?? null,
+    country: artwork.location?.country ?? null,
+    city: artwork.location?.city ?? null,
+    latitude: artwork.location?.coordinates?.[1] ?? null,
+    longitude: artwork.location?.coordinates?.[0] ?? null,
+    description: artwork.description ?? null,
+    image_url: artwork.imageUrl ?? null,
     tags: uniqueTags.length > 0 ? uniqueTags : null
   };
 };
@@ -181,48 +190,9 @@ export class ArtworkService {
         return [];
       }
 
-      return data.map(item => item.slug).filter(Boolean);
-    } catch (error) {
-      console.error('Error in getAllArtworkSlugs:', error);
-      return [];
-    }
-  }
-
-  // Get artwork by slug
-  static async getArtworkBySlug(slug: string): Promise<Artwork | null> {
-    try {
-      const { data, error } = await supabase
-        .from('artworks')
-        .select('*')
-        .eq('slug', slug)
-        .single();
-
-      if (error) {
-        console.error('Error fetching artwork by slug:', error);
-        return null;
-      }
-
-      return data ? convertToArtwork(data) : null;
-    } catch (error) {
-      console.error('Error in getArtworkBySlug:', error);
-      return null;
-    }
-  }
-
-  // Get all artwork slugs for static generation
-  static async getAllArtworkSlugs(): Promise<string[]> {
-    try {
-      const { data, error } = await supabase
-        .from('artworks')
-        .select('slug')
-        .not('slug', 'is', null);
-
-      if (error) {
-        console.error('Error fetching artwork slugs:', error);
-        return [];
-      }
-
-      return data.map(item => item.slug).filter(Boolean);
+      const rows = (data || []) as ArtworkSlugRow[];
+      const slugs = rows.map(item => item.slug).filter(isNonEmptyString);
+      return slugs;
     } catch (error) {
       console.error('Error in getAllArtworkSlugs:', error);
       return [];
@@ -231,28 +201,52 @@ export class ArtworkService {
 
   static async getArtworkCountsByCountry(filters?: {
     timeRange?: TimeRange;
-  }): Promise<{ [country: string]: number }> {
+  }): Promise<Database['public']['Functions']['get_artwork_counts_by_country']['Returns']> {
     try {
-        const { data, error } = await supabase.rpc('get_artwork_counts_by_country', {
-        start_year: filters?.timeRange?.start || null,
-        end_year: filters?.timeRange?.end || null
+      type RpcArgs = Database['public']['Functions']['get_artwork_counts_by_country']['Args'];
+      type RpcReturns = Database['public']['Functions']['get_artwork_counts_by_country']['Returns'];
+
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams();
+        if (typeof filters?.timeRange?.start === 'number') {
+          params.set('start_year', String(filters.timeRange.start));
+        }
+        if (typeof filters?.timeRange?.end === 'number') {
+          params.set('end_year', String(filters.timeRange.end));
+        }
+
+        const response = await fetch(`/api/artworkCountsByCountry?${params.toString()}`, {
+          method: 'GET',
+          cache: 'no-store'
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch counts: ${response.status}`);
+        }
+
+        const rows = (await response.json()) as RpcReturns;
+        return rows;
+      }
+
+      const rpc = supabase.rpc as unknown as (
+        fn: 'get_artwork_counts_by_country',
+        args: RpcArgs
+      ) => Promise<{ data: RpcReturns | null; error: unknown }>;
+
+      const { data, error } = await rpc('get_artwork_counts_by_country', {
+        start_year: filters?.timeRange?.start ?? null,
+        end_year: filters?.timeRange?.end ?? null
       });
 
       if (error) {
         console.error('Error fetching artwork counts by country:', error);
-        return {};
+        return [];
       }
 
-      // Convert array result to object format
-      const countryCounts: { [country: string]: number } = {};
-      data?.forEach((item: { country: string; count: number }) => {
-        countryCounts[item.country] = item.count;
-      });
-
-      return countryCounts;
+      return data || [];
     } catch (error) {
       console.error('Error in getArtworkCountsByCountry:', error);
-      return {};
+      return [];
     }
   }
 
@@ -260,8 +254,6 @@ export class ArtworkService {
   static async getArtworksByLocation(location: Location, timeRange?: TimeRange): Promise<Artwork[]> {
     console.log("getArtworksByLocation", location);
     try {
-      let artworks: Artwork[] = [];
-
       // 1. 如果有city参数且不为空，先尝试按city查询
       if (location.city && location.city.trim()) {
         console.log("Debug, here is city", location.city);
@@ -352,7 +344,8 @@ export class ArtworkService {
         return [];
       }
 
-      const countries = [...new Set(data.map(item => item.country).filter(Boolean))];
+      const rows = (data || []) as ArtworkCountryRow[];
+      const countries = [...new Set(rows.map(item => item.country).filter(isNonEmptyString))];
       return countries.sort();
     } catch (error) {
       console.error('Error in getCountries:', error);
@@ -373,7 +366,8 @@ export class ArtworkService {
         return [];
       }
 
-      const artists = [...new Set(data.map(item => item.artist_name).filter(Boolean))];
+      const rows = (data || []) as ArtworkArtistRow[];
+      const artists = [...new Set(rows.map(item => item.artist_name).filter(isNonEmptyString))];
       return artists.sort();
     } catch (error) {
       console.error('Error in getArtists:', error);
@@ -394,9 +388,10 @@ export class ArtworkService {
       }
 
       const movements = new Set<string>();
-      data.forEach(item => {
+      const rows = (data || []) as ArtworkTagsRow[];
+      rows.forEach(item => {
         const tags = normalizeTags(item.tags);
-        tags.forEach((tag: string) => {
+        tags.forEach(tag => {
           if (tag.startsWith('movement:')) {
             movements.add(tag.replace('movement:', ''));
           }
