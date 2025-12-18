@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { supabase } from '../lib/supabase';
 import { Database } from '../lib/database.types';
 import { Theme, Artwork } from '../types';
@@ -7,7 +6,27 @@ import { normalizeTags } from '../utils/tags';
 
 type ThemeRow = Database['public']['Tables']['themes']['Row'];
 type ThemeInsert = Database['public']['Tables']['themes']['Insert'];
-type ThemeUpdate = Database['public']['Tables']['themes']['Update'];
+type ArtworkRow = Database['public']['Tables']['artworks']['Row'];
+
+type ThemeArtworkJoinRow = {
+  display_order: number | null;
+  artworks: Pick<
+    ArtworkRow,
+    | 'id'
+    | 'slug'
+    | 'title'
+    | 'artist_name'
+    | 'creation_year'
+    | 'period'
+    | 'country'
+    | 'city'
+    | 'latitude'
+    | 'longitude'
+    | 'description'
+    | 'image_url'
+    | 'tags'
+  > | null;
+};
 
 // Convert database row to frontend Theme type
 const convertToTheme = (row: ThemeRow, artworks?: Artwork[], artworkCount?: number): Theme => ({
@@ -32,7 +51,7 @@ export class ThemeService {
   // Get all themes with artwork counts
   static async getAllThemes(): Promise<Theme[]> {
     try {
-      const { data: themes, error: themesError } = await supabase
+      const { data: themesData, error: themesError } = await supabase
         .from('themes')
         .select('*')
         .order('created_at', { ascending: false });
@@ -43,8 +62,9 @@ export class ThemeService {
       }
 
       // Get artwork counts for each theme
+      const themes = (themesData || []) as ThemeRow[];
       const themesWithCounts = await Promise.all(
-        (themes || []).map(async (theme) => {
+        themes.map(async (theme) => {
           const { count, error: countError } = await supabase
             .from('theme_artworks')
             .select('*', { count: 'exact', head: true })
@@ -69,7 +89,7 @@ export class ThemeService {
   static async getThemeBySlug(slug: string): Promise<Theme | null> {
     try {
       // First, get the theme
-      const { data: theme, error: themeError } = await supabase
+      const { data: themeData, error: themeError } = await supabase
         .from('themes')
         .select('*')
         .eq('slug', slug)
@@ -80,6 +100,7 @@ export class ThemeService {
         return null;
       }
 
+      const theme = (themeData || null) as ThemeRow | null;
       if (!theme) {
         return null;
       }
@@ -114,13 +135,14 @@ export class ThemeService {
       }
 
       // Convert artworks to frontend format
-      const artworks: Artwork[] = (themeArtworks || [])
-        .filter(ta => ta.artworks) // Filter out any null artworks
-        .map(ta => {
-          const artwork = ta.artworks as any;
+      const artworks: Artwork[] = ((themeArtworks || []) as unknown as ThemeArtworkJoinRow[])
+        .filter((ta): ta is ThemeArtworkJoinRow & { artworks: NonNullable<ThemeArtworkJoinRow['artworks']> } =>
+          Boolean(ta.artworks)
+        )
+        .map(({ artworks: artwork }) => {
           const tags = normalizeTags(artwork.tags);
-          const movementTag = tags.find((tag: string) => tag.startsWith('movement:'));
-          const mediumTag = tags.find((tag: string) => tag.startsWith('medium:'));
+          const movementTag = tags.find(tag => tag.startsWith('movement:'));
+          const mediumTag = tags.find(tag => tag.startsWith('medium:'));
           const movement = movementTag ? movementTag.replace('movement:', '').trim() : '';
           const medium = mediumTag ? mediumTag.replace('medium:', '').trim() : '';
 
@@ -163,7 +185,7 @@ export class ThemeService {
         return [];
       }
 
-      return (data || []).map(theme => theme.slug);
+      return ((data || []) as Array<Pick<ThemeRow, 'slug'>>).map(theme => theme.slug);
     } catch (error) {
       console.error('Error in getAllThemeSlugs:', error);
       return [];
@@ -173,7 +195,7 @@ export class ThemeService {
   // Create a new theme
   static async createTheme(theme: Partial<Theme>): Promise<Theme | null> {
     try {
-      const { data, error } = await supabase
+      const { data: themeData, error } = await supabase
         .from('themes')
         .insert(convertToInsert(theme))
         .select()
@@ -184,7 +206,8 @@ export class ThemeService {
         throw error;
       }
 
-      return data ? convertToTheme(data) : null;
+      const created = (themeData || null) as ThemeRow | null;
+      return created ? convertToTheme(created) : null;
     } catch (error) {
       console.error('Error in createTheme:', error);
       return null;

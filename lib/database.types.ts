@@ -33,6 +33,7 @@ export interface Database {
         }
         Insert: {
           id?: string
+          slug?: string | null
           title: string
           artist_name?: string | null
           creation_year?: number | null
@@ -72,6 +73,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       themes: {
         Row: {
@@ -101,6 +103,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       theme_artworks: {
         Row: {
@@ -121,6 +124,7 @@ export interface Database {
           display_order?: number | null
           created_at?: string
         }
+        Relationships: []
       }
     }
     Views: {

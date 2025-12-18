@@ -1,8 +1,7 @@
-// @ts-nocheck
 interface ChatResponse {
   location?: {
     country: string;
-    city: string 
+    city: string
   };
   timeRange?: {
     start: number;
@@ -12,10 +11,10 @@ interface ChatResponse {
 }
 
 interface APIResponse {
-  start_time: string | "";
-  end_time: string | "";
-  country: string | "";
-  city: string | "";
+  start_time: string | null;
+  end_time: string | null;
+  country: string | null;
+  city: string | null;
 }
 
 export class OpenAIService {
@@ -42,7 +41,7 @@ export class OpenAIService {
       if (apiResponse.country) {
         result.location = {
           country: apiResponse.country,
-          city: apiResponse.city
+          city: apiResponse.city || ''
         };
       }
 
@@ -57,7 +56,7 @@ export class OpenAIService {
       }
 
       // 然后根据已赋值的数据构建消息
-      const extractedInfo = [];
+      const extractedInfo: string[] = [];
 
       if (result.location) {
         const locationInfo = result.location.city && result.location.city.trim()
@@ -108,9 +107,9 @@ export class OpenAIService {
 
   private static fallbackProcessing(query: string): ChatResponse {
     const queryLower = query.toLowerCase();
-    let response: ChatResponse = {
+    const response: ChatResponse & { location: { country: string; city: string } } = {
       message: '抱歉，我无法连接到AI服务。使用本地处理为您查找相关内容。',
-      location: {country: '', city: ''}
+      location: { country: '', city: '' }
     };
 
     // 时间范围处理
