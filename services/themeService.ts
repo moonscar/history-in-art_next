@@ -28,6 +28,123 @@ type ThemeArtworkJoinRow = {
   > | null;
 };
 
+type ThemeCriteria =
+  | { kind: 'century'; startYear: number; endYear: number }
+  | { kind: 'city'; city: string }
+  | { kind: 'tag'; tag: string }
+  | { kind: 'curated' };
+
+function getThemeCriteria(slug: string): ThemeCriteria {
+  if (slug.startsWith('century-')) {
+    const yearPart = slug.slice('century-'.length);
+    const startYear = Number.parseInt(yearPart, 10);
+    if (Number.isFinite(startYear)) {
+      const currentYear = new Date().getFullYear();
+      const endYear = Math.min(startYear + 99, currentYear);
+      return { kind: 'century', startYear, endYear };
+    }
+  }
+
+  if (slug.startsWith('city-')) {
+    const cityPart = slug.slice('city-'.length);
+    const city = cityPart.replace(/-/g, ' ').trim();
+    if (city) return { kind: 'city', city };
+  }
+
+  if (slug.startsWith('tag-')) {
+    const tag = slug.slice('tag-'.length).replace(/-/g, ' ').trim();
+    if (tag) return { kind: 'tag', tag };
+  }
+
+  return { kind: 'curated' };
+}
+
+function getCandidateTags(tag: string): string[] {
+  const base = tag.trim();
+  if (!base) return [];
+
+  const baseVariants = new Set<string>([base]);
+  baseVariants.add(base.replace(/-/g, ' ').trim());
+  baseVariants.add(base.replace(/ /g, '-').trim());
+
+  const candidates = new Set<string>();
+  for (const variant of baseVariants) {
+    if (!variant) continue;
+
+    candidates.add(variant);
+    candidates.add(`tag:${variant}`);
+    candidates.add(`subject:${variant}`);
+
+    if (!variant.endsWith('s')) {
+      candidates.add(`${variant}s`);
+      candidates.add(`tag:${variant}s`);
+      candidates.add(`subject:${variant}s`);
+    }
+  }
+
+  if (base === 'woman') {
+    candidates.add('women');
+    candidates.add('tag:women');
+    candidates.add('subject:women');
+  }
+
+  if (base === 'sky') {
+    candidates.add('skies');
+    candidates.add('tag:skies');
+    candidates.add('subject:skies');
+  }
+
+  return Array.from(candidates);
+}
+
+function escapeIlike(value: string): string {
+  return value.replace(/%/g, '').replace(/,/g, '').trim();
+}
+
+function convertArtworkRowToArtwork(row: Pick<
+  ArtworkRow,
+  | 'id'
+  | 'slug'
+  | 'title'
+  | 'artist_name'
+  | 'creation_year'
+  | 'period'
+  | 'country'
+  | 'city'
+  | 'latitude'
+  | 'longitude'
+  | 'description'
+  | 'image_url'
+  | 'tags'
+>): Artwork {
+  const tags = normalizeTags(row.tags);
+  const movementTag = tags.find(tag => tag.startsWith('movement:'));
+  const mediumTag = tags.find(tag => tag.startsWith('medium:'));
+  const movement = movementTag ? movementTag.replace('movement:', '').trim() : '';
+  const medium = mediumTag ? mediumTag.replace('medium:', '').trim() : '';
+
+  return {
+    id: row.id,
+    slug: row.slug || slugify(row.title),
+    title: row.title,
+    artist: row.artist_name || 'Unknown Artist',
+    year: row.creation_year || 0,
+    period: row.period || '',
+    location: {
+      country: row.country || 'Unknown Country',
+      city: row.city || 'Unknown City',
+      coordinates: [row.longitude || 0, row.latitude || 0] as [number, number]
+    },
+    imageUrl:
+      row.image_url ||
+      'https://images.pexels.com/photos/1563356/pexels-photo-1563356.jpeg?auto=compress&cs=tinysrgb&w=400',
+    description: row.description || 'No description available',
+    movement: movement || 'Unknown Movement',
+    medium: medium || 'Unknown Medium',
+    tags
+  };
+}
+
 // Convert database row to frontend Theme type
 const convertToTheme = (row: ThemeRow, artworks?: Artwork[], artworkCount?: number): Theme => ({
   id: row.id,
@@ -48,6 +165,192 @@ const convertToInsert = (theme: Partial<Theme>): ThemeInsert => ({
 });
 
 export class ThemeService {
+  private static async getDerivedThemeArtworks(criteria: ThemeCriteria, limit: number) {
+    if (criteria.kind === 'curated') {
+      return { artworks: [] as Artwork[], count: 0 };
+    }
+
+    const selectColumns = `
+      id,
+      slug,
+      title,
+      artist_name,
+      creation_year,
+      period,
+      country,
+      city,
+      latitude,
+      longitude,
+      description,
+      image_url,
+      tags
+    `;
+
+    if (criteria.kind === 'century') {
+      const query = supabase
+        .from('artworks')
+        .select(selectColumns, { count: 'exact' })
+        .gte('creation_year', criteria.startYear)
+        .lte('creation_year', criteria.endYear)
+        .order('map_display_priority', { ascending: false })
+        .order('creation_year', { ascending: true })
+        .limit(limit);
+
+      const { data, error, count } = await query;
+      if (error) {
+        console.error('Error fetching derived theme artworks:', error);
+        return { artworks: [] as Artwork[], count: 0 };
+      }
+
+      const rows = (data || []) as Array<Pick<
+        ArtworkRow,
+        | 'id'
+        | 'slug'
+        | 'title'
+        | 'artist_name'
+        | 'creation_year'
+        | 'period'
+        | 'country'
+        | 'city'
+        | 'latitude'
+        | 'longitude'
+        | 'description'
+        | 'image_url'
+        | 'tags'
+      >>;
+
+      return {
+        artworks: rows.map(convertArtworkRowToArtwork),
+        count: count || 0
+      };
+    }
+
+    if (criteria.kind === 'city') {
+      const city = escapeIlike(criteria.city);
+      const query = supabase
+        .from('artworks')
+        .select(selectColumns, { count: 'exact' })
+        .ilike('city', city ? `%${city}%` : criteria.city)
+        .order('map_display_priority', { ascending: false })
+        .order('creation_year', { ascending: true })
+        .limit(limit);
+
+      const { data, error, count } = await query;
+      if (error) {
+        console.error('Error fetching derived theme artworks:', error);
+        return { artworks: [] as Artwork[], count: 0 };
+      }
+
+      const rows = (data || []) as Array<Pick<
+        ArtworkRow,
+        | 'id'
+        | 'slug'
+        | 'title'
+        | 'artist_name'
+        | 'creation_year'
+        | 'period'
+        | 'country'
+        | 'city'
+        | 'latitude'
+        | 'longitude'
+        | 'description'
+        | 'image_url'
+        | 'tags'
+      >>;
+
+      return {
+        artworks: rows.map(convertArtworkRowToArtwork),
+        count: count || 0
+      };
+    }
+
+    if (criteria.kind === 'tag') {
+      const candidateTags = getCandidateTags(criteria.tag);
+
+      for (const candidateTag of candidateTags) {
+        const query = supabase
+          .from('artworks')
+          .select(selectColumns, { count: 'exact' })
+          .contains('tags', [candidateTag])
+          .order('map_display_priority', { ascending: false })
+          .order('creation_year', { ascending: true })
+          .limit(limit);
+
+        const { data, error, count } = await query;
+        if (error) {
+          console.error('Error fetching derived theme artworks:', error);
+          continue;
+        }
+
+        if (!count) continue;
+
+        const rows = (data || []) as Array<Pick<
+          ArtworkRow,
+          | 'id'
+          | 'slug'
+          | 'title'
+          | 'artist_name'
+          | 'creation_year'
+          | 'period'
+          | 'country'
+          | 'city'
+          | 'latitude'
+          | 'longitude'
+          | 'description'
+          | 'image_url'
+          | 'tags'
+        >>;
+
+        return {
+          artworks: rows.map(convertArtworkRowToArtwork),
+          count: count || 0
+        };
+      }
+
+      const term = escapeIlike(criteria.tag.replace(/-/g, ' '));
+      if (!term) {
+        return { artworks: [] as Artwork[], count: 0 };
+      }
+
+      const query = supabase
+        .from('artworks')
+        .select(selectColumns, { count: 'exact' })
+        .or(`title.ilike.%${term}%,description.ilike.%${term}%`)
+        .order('map_display_priority', { ascending: false })
+        .order('creation_year', { ascending: true })
+        .limit(limit);
+
+      const { data, error, count } = await query;
+      if (error) {
+        console.error('Error fetching derived theme artworks:', error);
+        return { artworks: [] as Artwork[], count: 0 };
+      }
+
+      const rows = (data || []) as Array<Pick<
+        ArtworkRow,
+        | 'id'
+        | 'slug'
+        | 'title'
+        | 'artist_name'
+        | 'creation_year'
+        | 'period'
+        | 'country'
+        | 'city'
+        | 'latitude'
+        | 'longitude'
+        | 'description'
+        | 'image_url'
+        | 'tags'
+      >>;
+
+      return {
+        artworks: rows.map(convertArtworkRowToArtwork),
+        count: count || 0
+      };
+    }
+    return { artworks: [] as Artwork[], count: 0 };
+  }
+
   // Get all themes with artwork counts
   static async getAllThemes(): Promise<Theme[]> {
     try {
@@ -65,16 +368,26 @@ export class ThemeService {
       const themes = (themesData || []) as ThemeRow[];
       const themesWithCounts = await Promise.all(
         themes.map(async (theme) => {
-          const { count, error: countError } = await supabase
+          const { count: curatedCount, error: curatedCountError } = await supabase
             .from('theme_artworks')
             .select('*', { count: 'exact', head: true })
             .eq('theme_id', theme.id);
 
-          if (countError) {
-            console.error('Error fetching artwork count for theme:', theme.id, countError);
+          if (curatedCountError) {
+            console.error('Error fetching artwork count for theme:', theme.id, curatedCountError);
           }
 
-          return convertToTheme(theme, undefined, count || 0);
+          if (curatedCount && curatedCount > 0) {
+            return convertToTheme(theme, undefined, curatedCount);
+          }
+
+          const criteria = getThemeCriteria(theme.slug);
+          if (criteria.kind !== 'curated') {
+            const derived = await this.getDerivedThemeArtworks(criteria, 1);
+            return convertToTheme(theme, undefined, derived.count);
+          }
+
+          return convertToTheme(theme, undefined, 0);
         })
       );
 
@@ -105,68 +418,62 @@ export class ThemeService {
         return null;
       }
 
-      // Then, get associated artworks
-      const { data: themeArtworks, error: artworksError } = await supabase
-        .from('theme_artworks')
-        .select(`
-          display_order,
-          artworks (
-            id,
-            slug,
-            title,
-            artist_name,
-            creation_year,
-            period,
-            country,
-            city,
-            latitude,
-            longitude,
-            description,
-            image_url,
-            tags
-          )
-        `)
-        .eq('theme_id', theme.id)
-        .order('display_order', { ascending: true });
+      const criteria = getThemeCriteria(theme.slug);
 
-      if (artworksError) {
-        console.error('Error fetching theme artworks:', artworksError);
-        return convertToTheme(theme, [], 0);
+      const { count: curatedCount, error: curatedCountError } = await supabase
+        .from('theme_artworks')
+        .select('*', { count: 'exact', head: true })
+        .eq('theme_id', theme.id);
+
+      if (curatedCountError) {
+        console.error('Error fetching artwork count for theme:', theme.id, curatedCountError);
       }
 
-      // Convert artworks to frontend format
-      const artworks: Artwork[] = ((themeArtworks || []) as unknown as ThemeArtworkJoinRow[])
-        .filter((ta): ta is ThemeArtworkJoinRow & { artworks: NonNullable<ThemeArtworkJoinRow['artworks']> } =>
-          Boolean(ta.artworks)
-        )
-        .map(({ artworks: artwork }) => {
-          const tags = normalizeTags(artwork.tags);
-          const movementTag = tags.find(tag => tag.startsWith('movement:'));
-          const mediumTag = tags.find(tag => tag.startsWith('medium:'));
-          const movement = movementTag ? movementTag.replace('movement:', '').trim() : '';
-          const medium = mediumTag ? mediumTag.replace('medium:', '').trim() : '';
+      if (curatedCount && curatedCount > 0) {
+        const { data: themeArtworks, error: artworksError } = await supabase
+          .from('theme_artworks')
+          .select(`
+            display_order,
+            artworks (
+              id,
+              slug,
+              title,
+              artist_name,
+              creation_year,
+              period,
+              country,
+              city,
+              latitude,
+              longitude,
+              description,
+              image_url,
+              tags
+            )
+          `)
+          .eq('theme_id', theme.id)
+          .order('display_order', { ascending: true })
+          .limit(48);
 
-          return {
-            id: artwork.id,
-            slug: artwork.slug || slugify(artwork.title),
-            title: artwork.title,
-            artist: artwork.artist_name || 'Unknown Artist',
-            year: artwork.creation_year || 0,
-            period: artwork.period || '',
-            location: {
-              country: artwork.country || 'Unknown Country',
-              city: artwork.city || 'Unknown City',
-              coordinates: [artwork.longitude || 0, artwork.latitude || 0] as [number, number]
-            },
-            imageUrl: artwork.image_url || 'https://images.pexels.com/photos/1563356/pexels-photo-1563356.jpeg?auto=compress&cs=tinysrgb&w=400',
-            description: artwork.description || 'No description available',
-            movement: movement || 'Unknown Movement',
-            medium: medium || 'Unknown Medium',
-            tags
-          };
-        });
+        if (artworksError) {
+          console.error('Error fetching theme artworks:', artworksError);
+          return convertToTheme(theme, [], curatedCount);
+        }
 
-      return convertToTheme(theme, artworks, artworks.length);
+        const artworks: Artwork[] = ((themeArtworks || []) as unknown as ThemeArtworkJoinRow[])
+          .filter((ta): ta is ThemeArtworkJoinRow & { artworks: NonNullable<ThemeArtworkJoinRow['artworks']> } =>
+            Boolean(ta.artworks)
+          )
+          .map(({ artworks: artwork }) => convertArtworkRowToArtwork(artwork));
+
+        return convertToTheme(theme, artworks, curatedCount);
+      }
+
+      if (criteria.kind !== 'curated') {
+        const derived = await this.getDerivedThemeArtworks(criteria, 48);
+        return convertToTheme(theme, derived.artworks, derived.count);
+      }
+
+      return convertToTheme(theme, [], 0);
     } catch (error) {
       console.error('Error in getThemeBySlug:', error);
       return null;

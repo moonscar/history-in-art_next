@@ -43,7 +43,7 @@ export default async function ThemeDetailPage({ params }: ThemeDetailPageProps) 
   // Generate SEO data
   const seoData = {
     title: `${theme.title} | ${locale === 'zh' ? '艺术主题' : 'Art Theme'} | History in Art`,
-    description: `${theme.description.substring(0, 160)}... ${locale === 'zh' ? '包含' : 'Contains'} ${theme.artworks?.length || 0} ${locale === 'zh' ? '件艺术作品' : 'artworks'}.`,
+    description: `${theme.description.substring(0, 160)}... ${locale === 'zh' ? '包含' : 'Contains'} ${theme.artworkCount ?? theme.artworks?.length ?? 0} ${locale === 'zh' ? '件艺术作品' : 'artworks'}.`,
     keywords: `${theme.title},${locale === 'zh' ? '艺术主题,艺术收藏,艺术展览' : 'art theme,art collection,art exhibition'}`,
     image: theme.imageUrl,
     type: 'article' as const,
@@ -86,7 +86,7 @@ export default async function ThemeDetailPage({ params }: ThemeDetailPageProps) 
                   </span>
                   <div className="flex items-center text-gray-300">
                     <ImageIcon size={16} className="mr-1" />
-                    {theme.artworks?.length || 0} {locale === 'zh' ? '件作品' : 'artworks'}
+                    {theme.artworkCount ?? theme.artworks?.length ?? 0} {locale === 'zh' ? '件作品' : 'artworks'}
                   </div>
                 </div>
                 
@@ -126,7 +126,7 @@ export default async function ThemeDetailPage({ params }: ThemeDetailPageProps) 
                 <ImageIcon size={24} className="mr-3 text-blue-400" />
                 {locale === 'zh' ? '收录作品' : 'Featured Artworks'}
                 <span className="ml-3 bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
-                  {theme.artworks?.length || 0}
+                  {theme.artworkCount ?? theme.artworks?.length ?? 0}
                 </span>
               </h2>
             </div>
