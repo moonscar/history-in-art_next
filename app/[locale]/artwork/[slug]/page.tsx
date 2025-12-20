@@ -5,8 +5,8 @@ import { ArrowLeft, MapPin, Calendar, User, Palette, Image, ExternalLink } from 
 import { ArtworkService } from '@/services/artworkService';
 import { generateArtworkStructuredData } from '@/utils/structuredData';
 import SEOHead from '@/components/SEOHead';
-import { Artwork } from '@/types';
 import { AdSense } from '@/components/AdSense';
+import { slugify } from '@/utils/slugify';
 
 interface ArtworkDetailPageProps {
   params: {
@@ -49,6 +49,16 @@ async function ArtworkDetailPage({ params }: ArtworkDetailPageProps) {
   };
 
   const structuredData = generateArtworkStructuredData(artwork);
+
+  const keywordTags = Array.from(
+    new Set(
+      (artwork.tags || [])
+        .filter(tag => !tag.startsWith('movement:') && !tag.startsWith('medium:'))
+        .map((tag) => tag.replace(/^subject:/, '').replace(/^tag:/, '').trim())
+        .filter((tag) => tag.length >= 2 && tag.length <= 40)
+        .filter((tag) => !/https?:|www\.|\.com|,|\./i.test(tag))
+    )
+  ).slice(0, 12);
 
   return (
     <>
@@ -179,6 +189,26 @@ async function ArtworkDetailPage({ params }: ArtworkDetailPageProps) {
                       {artwork.description}
                     </p>
                   </div>
+
+                  {keywordTags.length > 0 ? (
+                    <div className="border-t border-gray-700 pt-6">
+                      <h3 className="text-lg font-semibold text-white mb-3">Keywords</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {keywordTags.map((tag) => (
+                          <Link
+                            key={tag}
+                            href={`/themes/tag-${slugify(tag)}`}
+                            className="inline-flex items-center rounded-full bg-purple-600/20 px-3 py-1 text-sm text-purple-200 hover:bg-purple-600/30 transition-colors"
+                          >
+                            {tag}
+                          </Link>
+                        ))}
+                      </div>
+                      <p className="mt-3 text-xs text-gray-400">
+                        Click a keyword to explore artworks with the same theme.
+                      </p>
+                    </div>
+                  ) : null}
                   
                   <div className="border-t border-gray-700 pt-6">
                     <div className="space-y-3">
