@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import App from '@/components/App';
+import HomeClient from '@/app/[locale]/HomeClient';
 
 type HomePageProps = {
   params: { locale: string };
@@ -26,5 +26,5 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
 }
 
 export default function HomePage() {
-  return <App />;
+  return <HomeClient />;
 }
