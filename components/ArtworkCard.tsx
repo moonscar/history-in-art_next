@@ -11,6 +11,7 @@ interface ArtworkCardProps {
   onAddToGallery?: (artwork: Artwork) => void;
   showAddButton?: boolean;
   isAddedToGallery?: boolean;
+  priority?: boolean;
 }
 
 const ArtworkCard: React.FC<ArtworkCardProps> = ({ 
@@ -18,10 +19,23 @@ const ArtworkCard: React.FC<ArtworkCardProps> = ({
   onClick, 
   onAddToGallery, 
   showAddButton = true,
-  isAddedToGallery = false
+  isAddedToGallery = false,
+  priority = false
 }) => {
   const t = useTranslations();
   const [showAddedFeedback, setShowAddedFeedback] = React.useState(false);
+  const { imageSrc, unoptimized } = React.useMemo(() => {
+    const rawSrc = artwork.imageUrl;
+    if (!rawSrc) return { imageSrc: rawSrc, unoptimized: false };
+
+    const normalizedSrc = rawSrc.replace(/^http:\/\//, 'https://');
+    const isSpecialFilePath = normalizedSrc.includes('commons.wikimedia.org/wiki/Special:FilePath/');
+
+    return {
+      imageSrc: normalizedSrc,
+      unoptimized: isSpecialFilePath
+    };
+  }, [artwork.imageUrl]);
 
   const handleAddToGallery = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -74,13 +88,20 @@ const ArtworkCard: React.FC<ArtworkCardProps> = ({
       
       <figure className="relative h-48 overflow-hidden">
         <Image 
-          src={artwork.imageUrl} 
+          src={imageSrc} 
           alt={`${artwork.title} by ${artwork.artist}, ${artwork.year}`}
           className="object-cover transition-transform duration-300 group-hover:scale-110"
           itemProp="image"
           fill
           sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
           loading="lazy"
+          unoptimized={unoptimized}
+          priority={priority}
+          onError={(event) => {
+            const target = event.currentTarget;
+            target.onerror = null;
+            target.src = 'https://images.pexels.com/photos/1563356/pexels-photo-1563356.jpeg?auto=compress&cs=tinysrgb&w=400';
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         <div className="absolute top-3 right-3 bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-medium">

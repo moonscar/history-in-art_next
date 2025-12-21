@@ -498,13 +498,14 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {visibleArtworks.map((artwork) => (
+                {visibleArtworks.map((artwork, index) => (
                   <ArtworkCard
                     key={artwork.id}
                     artwork={artwork}
                     onClick={() => onArtworkSelect(artwork)}
                     onAddToGallery={onAddToGallery}
                     isAddedToGallery={galleryArtworkIds.has(artwork.id)}
+                    priority={index === 0}
                   />
                 ))}
               </div>
