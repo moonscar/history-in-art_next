@@ -59,6 +59,7 @@ function App() {
     location?: Location;
     movement?: string;
     artist?: string;
+    tags?: string[];
   }>(initialState.chatQuery);
   const lastUrlSnapshotRef = useRef<string | null>(null);
 
@@ -79,7 +80,7 @@ function App() {
   useEffect(() => {
     const urlParams = parseURLParams();
     const hasValidParams = urlParams.country || urlParams.artist || urlParams.movement || 
-                          urlParams.start || urlParams.end;
+                          urlParams.start || urlParams.end || (urlParams.tags && urlParams.tags.length > 0);
     
     if (!hasValidParams) return;
 
@@ -97,6 +98,7 @@ function App() {
       location,
       artist: urlParams.artist,
       movement: urlParams.movement,
+      tags: urlParams.tags,
       timeRange: queryTimeRange
     });
     
@@ -118,8 +120,12 @@ function App() {
       const matchesLocation = !chatQuery.location || artwork.location.country === chatQuery.location.country;
       const matchesMovement = !chatQuery.movement || artwork.movement === chatQuery.movement;
       const matchesArtist = !chatQuery.artist || artwork.artist === chatQuery.artist;
+      const tagSet = Array.isArray(artwork.tags) ? new Set(artwork.tags) : null;
+      const matchesTags =
+        !chatQuery.tags || chatQuery.tags.length === 0 ||
+        (tagSet !== null && chatQuery.tags.every((tag) => tagSet.has(tag)));
       
-      return withinTimeRange && matchesLocation && matchesMovement && matchesArtist;
+      return withinTimeRange && matchesLocation && matchesMovement && matchesArtist && matchesTags;
     });
   }, [dbArtworks, timeRange, chatQuery]);
 
@@ -161,7 +167,7 @@ function App() {
 
   const handleResultsClose = () => {
     setShowResults(false);
-    setChatQuery({ timeRange: timeRange });
+    setChatQuery({ timeRange: timeRange, tags: [] });
     setTimeRange({ start: 1400, end: 2024 });
     
     // 更新 URL，移除查询参数
@@ -327,18 +333,20 @@ function App() {
     const hasLocationFilter = Boolean(chatQuery.location?.country || chatQuery.location?.city);
     const hasMovementFilter = Boolean(chatQuery.movement);
     const hasArtistFilter = Boolean(chatQuery.artist);
+    const hasTagsFilter = Boolean(chatQuery.tags && chatQuery.tags.length > 0);
 
     let params: URLParams = {};
     let replaceHistory = false;
 
-    if (hasLocationFilter || hasMovementFilter || hasArtistFilter) {
+    if (hasLocationFilter || hasMovementFilter || hasArtistFilter || hasTagsFilter) {
       params = {
         country: chatQuery.location?.country || undefined,
         city: chatQuery.location?.city || undefined,
         start: timeRange.start !== 1400 ? timeRange.start : undefined,
         end: timeRange.end !== 2024 ? timeRange.end : undefined,
         artist: chatQuery.artist,
-        movement: chatQuery.movement
+        movement: chatQuery.movement,
+        tags: chatQuery.tags && chatQuery.tags.length > 0 ? chatQuery.tags : undefined
       };
     } else if (timeRange.start !== 1400 || timeRange.end !== 2024) {
       params = {
@@ -363,6 +371,7 @@ function App() {
     chatQuery.location?.city,
     chatQuery.movement,
     chatQuery.artist,
+    chatQuery.tags,
     timeRange.start,
     timeRange.end
   ]);
@@ -477,6 +486,10 @@ function App() {
               onAddToGallery={handleAddToGallery}
               onTimeRangeChange={handleResultsTimeRangeChange}
               galleryArtworkIds={galleryArtworkIds}
+              selectedTags={chatQuery.tags || []}
+              onSelectedTagsChange={(tags) => {
+                setChatQuery((prev) => ({ ...prev, tags }));
+              }}
             />
           )}
 

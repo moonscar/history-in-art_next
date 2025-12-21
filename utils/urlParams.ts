@@ -7,6 +7,7 @@ export interface URLParams {
   end?: number;
   artist?: string;
   movement?: string;
+  tags?: string[];
 }
 
 // Parse URL search parameters into typed object
@@ -59,6 +60,12 @@ export const parseURLParams = (): URLParams => {
     params.movement = decodeURIComponent(movement);
   }
 
+  // Parse tags (multi-value)
+  const tags = searchParams.getAll('tags').map((value) => decodeURIComponent(value)).filter(Boolean);
+  if (tags.length > 0) {
+    params.tags = tags;
+  }
+
   return params;
 };
 
@@ -88,6 +95,12 @@ export const generateURLParams = (params: URLParams): string => {
 
   if (params.movement) {
     searchParams.set('movement', params.movement);
+  }
+
+  if (Array.isArray(params.tags) && params.tags.length > 0) {
+    params.tags.filter(Boolean).forEach((tag) => {
+      searchParams.append('tags', tag);
+    });
   }
 
   const queryString = searchParams.toString();
@@ -128,6 +141,7 @@ export const getInitialStateFromURL = () => {
       location,
       artist: urlParams.artist,
       movement: urlParams.movement,
+      tags: urlParams.tags,
       timeRange: (urlParams.start || urlParams.end) ? {
         start: urlParams.start || 1400,
         end: urlParams.end || 2024
@@ -146,6 +160,7 @@ export const validateURLParams = (expectedParams: URLParams): boolean => {
     currentParams.start === expectedParams.start &&
     currentParams.end === expectedParams.end &&
     currentParams.artist === expectedParams.artist &&
-    currentParams.movement === expectedParams.movement
+    currentParams.movement === expectedParams.movement &&
+    JSON.stringify(currentParams.tags || []) === JSON.stringify(expectedParams.tags || [])
   );
 };

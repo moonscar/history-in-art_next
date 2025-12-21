@@ -37,6 +37,8 @@ interface ResultsModalProps {
   onAddToGallery?: (artwork: Artwork) => void;
   onTimeRangeChange?: (start: number, end: number) => void;
   galleryArtworkIds?: Set<string>;
+  selectedTags?: string[];
+  onSelectedTagsChange?: (tags: string[]) => void;
 }
 
 const ResultsModal: React.FC<ResultsModalProps> = ({
@@ -47,10 +49,23 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
   onArtworkSelect,
   onAddToGallery,
   onTimeRangeChange,
-  galleryArtworkIds = new Set()
+  galleryArtworkIds = new Set(),
+  selectedTags: selectedTagsProp,
+  onSelectedTagsChange
 }) => {
   const t = useTranslations();
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedTagsState, setSelectedTagsState] = useState<string[]>([]);
+  const selectedTags = selectedTagsProp ?? selectedTagsState;
+  const setSelectedTags = (next: string[] | ((prev: string[]) => string[])) => {
+    const nextValue = typeof next === 'function' ? next(selectedTags) : next;
+
+    if (onSelectedTagsChange) {
+      onSelectedTagsChange(nextValue);
+      return;
+    }
+
+    setSelectedTagsState(nextValue);
+  };
   const [tagSearchTerm, setTagSearchTerm] = useState('');
   const [selectedCreator, setSelectedCreator] = useState(ALL_CREATORS);
   const [sortBy, setSortBy] = useState('year');
