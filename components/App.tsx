@@ -62,6 +62,7 @@ function App() {
     tags?: string[];
   }>(initialState.chatQuery);
   const lastUrlSnapshotRef = useRef<string | null>(null);
+  const openedResultsFromUrlRef = useRef(false);
 
   // Use the custom hook to fetch artworks from database
   const {
@@ -128,6 +129,30 @@ function App() {
       return withinTimeRange && matchesLocation && matchesMovement && matchesArtist && matchesTags;
     });
   }, [dbArtworks, timeRange, chatQuery]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (openedResultsFromUrlRef.current) return;
+
+    const urlParams = parseURLParams();
+    if (!urlParams.tags || urlParams.tags.length === 0) return;
+    if (dbArtworks.length === 0) return;
+
+    openedResultsFromUrlRef.current = true;
+    setResultsData({
+      artworks: filteredArtworks,
+      location: chatQuery.location,
+      timeRange
+    });
+    setShowResults(true);
+  }, [
+    dbArtworks.length,
+    filteredArtworks,
+    chatQuery.location,
+    chatQuery.tags,
+    timeRange.start,
+    timeRange.end
+  ]);
 
   const handleChatQuery = (params: {
     timeRange?: TimeRange;
