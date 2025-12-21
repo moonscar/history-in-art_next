@@ -94,7 +94,7 @@ const ArtworkCard: React.FC<ArtworkCardProps> = ({
           itemProp="image"
           fill
           sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-          loading="lazy"
+          loading={priority ? 'eager' : 'lazy'}
           unoptimized={unoptimized}
           priority={priority}
           onError={(event) => {

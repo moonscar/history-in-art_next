@@ -2,14 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { point } from '@turf/helpers';
-// import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
-import rewind from '@turf/rewind';
 import { Artwork, TimeRange, Location } from '../types';
-import { MapPin, Image as ImageIcon, Calendar, User, BarChart3 } from 'lucide-react';
+import { MapPin, Calendar, User, BarChart3 } from 'lucide-react';
 import { ArtworkService } from '../services/artworkService';
 import worldCountries from '../data/world-countries.json';
-// import cities from '../data/cities.json';
 import 'leaflet/dist/leaflet.css';
 
 // Fix for default markers in React Leaflet
@@ -28,6 +24,17 @@ interface InteractiveWorldMapProps {
   onAddToGallery?: (artwork: Artwork) => void;
   galleryArtworkIds?: Set<string>;
 }
+
+const FEATURED_MARKERS: { country: string; city: string; lat: number; lng: number; label: string }[] = [
+  { country: 'France', city: 'Paris', lat: 48.8566, lng: 2.3522, label: 'Paris, France' },
+  { country: 'United Kingdom', city: 'London', lat: 51.5074, lng: -0.1278, label: 'London, UK' },
+  { country: 'Netherlands', city: 'Amsterdam', lat: 52.3676, lng: 4.9041, label: 'Amsterdam, NL' },
+  { country: 'United States', city: 'New York City', lat: 40.7128, lng: -74.006, label: 'New York, USA' },
+  { country: 'Russia', city: 'Moscow', lat: 55.7558, lng: 37.6173, label: 'Moscow, Russia' },
+  { country: 'China', city: 'Beijing', lat: 39.9042, lng: 116.4074, label: 'Beijing, China' },
+  { country: 'Italy', city: 'Florence', lat: 43.7696, lng: 11.2558, label: 'Florence, Italy' },
+  { country: 'Brazil', city: 'Rio de Janeiro', lat: -22.9068, lng: -43.1729, label: 'Rio de Janeiro, Brazil' }
+];
 
 type WorldCountryProperties = {
   name?: string;
@@ -165,7 +172,6 @@ const createCityMarker = () => {
   });
 };
 
-// Component to handle map click events
 const MapClickHandler: React.FC<{
   onLocationClick: (lat: number, lng: number) => void;
 }> = ({ onLocationClick }) => {
@@ -178,44 +184,10 @@ const MapClickHandler: React.FC<{
   return null;
 };
 
-// Component to get country name from coordinates (simplified)
-// const getCountryFromCoordinates = (lat: number, lng: number): string => {
-//   try {
-//     const clickPoint = point([lng, lat]);
-
-//     // 在 worldCountries 数据中查找包含该点的国家
-//     for (const feature of worldCountries.features) {
-//       if (booleanPointInPolygon(clickPoint, feature)) {
-//         return feature.properties.NAME || feature.properties.name || 'Unknown';
-//       }
-//     }
-
-//     return 'Unknown Location';
-//   } catch (error) {
-//     console.error('Error in coordinate detection:', error);
-//     return 'Unknown Location';
-//   }
-// };
-
-// Get city name from coordinates
-const getCityFromCoordinates = async (lat: number, lng: number): Promise<string> => {
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
-    );
-    const data = await response.json();
-    return data.address?.city || data.address?.town || data.address?.village || 'Unknown Location';
-  } catch (error) {
-    console.error('Geocoding error:', error);
-    return 'Unknown Location';
-  }
-};
-
 const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
   artworks,
   timeRange,
   onLocationTimeSelect,
-  onArtworkSelect,
   onAddToGallery,
   galleryArtworkIds = new Set()
 }) => {
@@ -229,6 +201,10 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
     city: string;
     country: string;
   } | null>(null);
+  const [featuredMarkerArtworks, setFeaturedMarkerArtworks] = useState<Record<string, {
+    status: 'idle' | 'loading' | 'loaded' | 'error';
+    artworks: Artwork[];
+  }>>({});
 
   const geoCountryKeyToName = useMemo(() => {
     const geo = worldCountries as unknown as WorldCountriesGeoJson;
@@ -362,6 +338,105 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
 
   // 获取图例数据
   const legendData = generateLegendLabels();
+  const featuredMarkers = useMemo(() => FEATURED_MARKERS, []);
+  const featuredMarkerCountryCandidates = useMemo<Record<string, string[]>>(() => ({
+    'United Kingdom': [
+      'United Kingdom',
+      'United Kingdom of Great Britain and Ireland',
+      'UK',
+      'England',
+      'Scotland',
+      'Wales'
+    ],
+    'United States': [
+      'United States',
+      'United States of America',
+      'USA',
+      'US',
+      'U.S.',
+      'U.S.A.',
+      'United States of America of America'
+    ],
+    Netherlands: ['Netherlands', 'The Netherlands', 'Holland'],
+    Russia: ['Russia', 'Russian Federation'],
+    France: ['France'],
+    China: ['China'],
+    Brazil: ['Brazil'],
+    Italy: ['Italy']
+  }), []);
+
+  const ensureFeaturedMarkerArtworks = async (marker: (typeof featuredMarkers)[number]) => {
+    const key = `${marker.country}||${marker.city}`;
+    const existing = featuredMarkerArtworks[key];
+    if (existing?.status === 'loading' || existing?.status === 'loaded') return;
+
+    setFeaturedMarkerArtworks(prev => ({
+      ...prev,
+      [key]: { status: 'loading', artworks: prev[key]?.artworks || [] }
+    }));
+
+    const countries = Array.from(
+      new Set([marker.country, ...(featuredMarkerCountryCandidates[marker.country] || [])])
+    ).filter(Boolean);
+
+    try {
+      const rows = await ArtworkService.getArtworksByCountriesAndCityLoose({
+        countries,
+        city: marker.city,
+        timeRange,
+        limit: 30
+      });
+
+      setFeaturedMarkerArtworks(prev => ({
+        ...prev,
+        [key]: { status: 'loaded', artworks: rows }
+      }));
+    } catch (error) {
+      console.error('Error loading featured marker artworks:', { key, error });
+      setFeaturedMarkerArtworks(prev => ({
+        ...prev,
+        [key]: { status: 'error', artworks: prev[key]?.artworks || [] }
+      }));
+    }
+  };
+
+  const featuredArtworksByKey = useMemo(() => {
+    const normalize = (value: string) => value.trim().toLowerCase();
+
+    const buckets = new Map<string, { marker: (typeof featuredMarkers)[number]; cityMatches: Artwork[]; countryMatches: Artwork[] }>();
+    for (const marker of featuredMarkers) {
+      buckets.set(`${marker.country}||${marker.city}`, { marker, cityMatches: [], countryMatches: [] });
+    }
+
+    for (const artwork of artworks) {
+      const artworkCountry = normalize(artwork.location.country || '');
+      const artworkCity = normalize(artwork.location.city || '');
+
+      for (const entry of buckets.values()) {
+        const markerCity = normalize(entry.marker.city);
+        const acceptableCountries = new Set([
+          normalize(entry.marker.country),
+          ...(featuredMarkerCountryCandidates[entry.marker.country] || []).map(normalize)
+        ]);
+
+        const matchesMarkerCountry = acceptableCountries.has(artworkCountry) || acceptableCountries.has(artworkCity);
+        const matchesMarkerCity = (artworkCity && artworkCity === markerCity) || (artworkCountry && artworkCountry === markerCity);
+
+        if (!matchesMarkerCountry && !matchesMarkerCity) continue;
+
+        entry.countryMatches.push(artwork);
+        if (matchesMarkerCity) {
+          entry.cityMatches.push(artwork);
+        }
+      }
+    }
+
+    const result = new Map<string, Artwork[]>();
+    for (const [key, entry] of buckets.entries()) {
+      result.set(key, entry.cityMatches.length > 0 ? entry.cityMatches : entry.countryMatches);
+    }
+    return result;
+  }, [artworks, featuredMarkers, featuredMarkerCountryCandidates]);
 
   // Style function for GeoJSON countries (保持不变)
   const countryStyle = (feature: any) => {
@@ -377,100 +452,119 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
     };
   };
 
-  // 3. 修改 onCountryClick 函数，使用 Nominatim API
-  const onCountryClick = async (feature: any, layer: any) => {
-    // 获取国家的中心点坐标
-    const bounds = layer.getBounds();
-    const center = bounds.getCenter();
-    
-    try {
-      const location: Location = await getLocationFromCoordinates(center.lat, center.lng);
-      const count = countryCounts[location.country] || countryCounts[feature.properties.NAME] || 0;
+  // Country click: use country name directly (no external geocoding)
+  const onCountryClick = (feature: any, layer: any) => {
+    const countryName = feature.properties.name;
+    const count = countryCounts[countryName] || 0;
 
-      if (count > 0) {
-        onLocationTimeSelect(location, timeRange);
-      }
-
-      // Show popup with country info
-      const popup = L.popup()
-        .setContent(`
-          <div class="bg-gray-800 text-white p-3 rounded-lg">
-            <h3 class="font-bold text-blue-400 mb-2">${location.country}</h3>
-            <p class="text-gray-300 text-sm mb-2">${count} artwork${count !== 1 ? 's' : ''}</p>
-            ${count > 0 ? 
-              `<button onclick="window.queryCountry('${location.country}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded text-sm">${t('map.viewArtworks')}</button>` : 
-              `<p class="text-gray-500 text-xs">${t('map.noArtworks')}</p>`
-            }
-          </div>
-        `);
-
-      layer.bindPopup(popup);
-      layer.openPopup();
-    } catch (error) {
-      console.error('Error getting country info:', error);
-      // 回退到原来的逻辑
-      const countryName = feature.properties.name;
-      const count = countryCounts[countryName] || 0;
-      
-      if (count > 0) {
-        onLocationTimeSelect({ country: countryName, city: '' }, timeRange);
-      }
+    if (count > 0) {
+      onLocationTimeSelect({ country: countryName, city: '' }, timeRange);
     }
+
+    const popup = L.popup().setContent(`
+      <div class="bg-gray-800 text-white p-3 rounded-lg">
+        <h3 class="font-bold text-blue-400 mb-2">${countryName}</h3>
+        <p class="text-gray-300 text-sm mb-2">${count} artwork${count !== 1 ? 's' : ''}</p>
+      </div>
+    `);
+
+    layer.bindPopup(popup);
+    layer.openPopup();
   };
 
-  // Add global function for popup button
-  useEffect(() => {
-    (window as any).queryCountry = (countryName: string) => {
-      const location: Location = {
-        country: countryName,
-        city: ''
-      };
-      onLocationTimeSelect(location, timeRange);
-    };
+  // No global functions needed anymore (country click handled inline, gallery via props)
 
-    // Add global function for adding artwork to gallery from popup
-    (window as any).addArtworkToGallery = (artworkId: string) => {
-      const artwork = artworks.find(a => a.id === artworkId);
-      if (artwork && onAddToGallery) {
-        onAddToGallery(artwork);
-      }
-    };
-    return () => {
-      delete (window as any).queryCountry;
-      delete (window as any).addArtworkToGallery;
-    };
-  }, [onLocationTimeSelect, timeRange, artworks, onAddToGallery]);
-
-  // Group artworks by location to create clusters
-  const artworksByLocation = artworks.reduce((acc, artwork) => {
-    const coordinates = artwork.location.coordinates;
-    if (!coordinates || coordinates.length !== 2) {
-      return acc;
+  const handleLocationClick = (locationArtworks: Artwork[], locationOverride?: Location) => {
+    if (locationOverride) {
+      onLocationTimeSelect(locationOverride, timeRange);
+      return;
     }
-
-    const [lng, lat] = coordinates;
-
-    // Skip artworks with missing or placeholder coordinates
-    if (
-      lng === 0 && lat === 0 ||
-      !Number.isFinite(lng) ||
-      !Number.isFinite(lat)
-    ) {
-      return acc;
+    if (locationArtworks.length === 0) {
+      return;
     }
-
-    const key = `${lng},${lat}`;
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(artwork);
-    return acc;
-  }, {} as { [key: string]: Artwork[] });
-
-  const handleLocationClick = (locationArtworks: Artwork[]) => {
     const location = locationArtworks[0].location;
     onLocationTimeSelect(location, timeRange);
   };
+
+  const renderLocationPopup = (
+    locationArtworks: Artwork[],
+    title: string,
+    options?: { locationOverride?: Location; status?: 'idle' | 'loading' | 'loaded' | 'error' }
+  ) => (
+    <div className="bg-gray-800 text-white p-4 rounded-lg min-w-[280px]">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-bold text-lg text-blue-400">
+          {title}
+        </h3>
+        <span className="bg-purple-600 text-xs px-2 py-1 rounded-full">
+          {locationArtworks.length} artwork{locationArtworks.length > 1 ? 's' : ''}
+        </span>
+      </div>
+      
+      <div className="space-y-3 max-h-64 overflow-y-auto">
+        {options?.status === 'loading' && locationArtworks.length === 0 && (
+          <div className="text-sm text-gray-300">Loading artworks…</div>
+        )}
+        {options?.status === 'error' && locationArtworks.length === 0 && (
+          <div className="text-sm text-gray-300">Failed to load artworks.</div>
+        )}
+        {locationArtworks.map((artwork) => (
+          <div
+            key={artwork.id}
+            className="flex items-start space-x-3 p-2 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors"
+            onClick={() => window.open(`/artwork/${artwork.slug}`, '_self')}
+          >
+            <img
+              src={artwork.imageUrl}
+              alt={artwork.title}
+              className="w-12 h-12 object-cover rounded"
+            />
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-sm text-white truncate">
+                {artwork.title}
+              </h4>
+              <div className="flex items-center text-xs text-gray-300 mt-1">
+                <User size={10} className="mr-1" />
+                {artwork.artist}
+              </div>
+              <div className="flex items-center text-xs text-gray-400 mt-1">
+                <Calendar size={10} className="mr-1" />
+                {artwork.year} • {artwork.period}
+              </div>
+            </div>
+            
+            {/* Add to Gallery Button in Popup */}
+            {onAddToGallery && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddToGallery(artwork);
+                }}
+                className={`w-6 h-6 text-white rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
+                  galleryArtworkIds.has(artwork.id) 
+                    ? 'bg-pink-600 hover:bg-pink-700' 
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+                title={t('gallery.addToGallery')}
+              >
+                <span className="text-xs font-bold leading-none">
+                  {galleryArtworkIds.has(artwork.id) ? '♥' : '+'}
+                </span>
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+      
+      <button
+        onClick={() => handleLocationClick(locationArtworks, options?.locationOverride)}
+        disabled={locationArtworks.length === 0 && !options?.locationOverride}
+        className="w-full mt-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-400 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
+      >
+        {t('map.viewArtworks')} ({locationArtworks.length})
+      </button>
+    </div>
+  );
 
   // 1. 修改 getCityFromCoordinates 函数，同时获取城市和国家信息
   const getLocationFromCoordinates = async (lat: number, lng: number): Promise<{
@@ -544,7 +638,7 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
           <div className="flex items-center space-x-4 text-sm">
             <div className="flex items-center text-white">
               <MapPin size={16} className="mr-2 text-blue-400" />
-              <span className="font-medium">{Object.keys(artworksByLocation).length} {t('map.locations')}</span>
+              <span className="font-medium">{featuredMarkers.length} {t('map.locations')}</span>
             </div>
             <div className="flex items-center text-gray-300">
               <Calendar size={16} className="mr-1 text-purple-400" />
@@ -636,7 +730,35 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
                 });
               }}
             />
-          )}
+	          )}
+
+          {/* Featured onboarding markers */}
+          {featuredMarkers.map(({ city, country, lat, lng, label }) => {
+            const key = `${country}||${city}`;
+            const loaded = featuredMarkerArtworks[key];
+            const markerArtworks = loaded?.artworks || featuredArtworksByKey.get(key) || [];
+            const primaryArtwork = markerArtworks[0];
+
+            return (
+              <Marker
+                key={`featured-${country}-${city}`}
+                position={[lat, lng]}
+                icon={createCustomIcon(primaryArtwork?.period || '')}
+                eventHandlers={{
+                  popupopen: () => {
+                    void ensureFeaturedMarkerArtworks({ country, city, lat, lng, label });
+                  }
+                }}
+              >
+                <Popup className="custom-popup" maxWidth={300}>
+                  {renderLocationPopup(markerArtworks, label, {
+                    locationOverride: { country, city },
+                    status: loaded?.status || 'idle'
+                  })}
+                </Popup>
+              </Marker>
+            );
+          })}
           
           <MapClickHandler onLocationClick={handleMapClick} />
           
@@ -664,91 +786,6 @@ const InteractiveWorldMap: React.FC<InteractiveWorldMapProps> = ({
               </Popup>
             </Marker>
           )}
-          
-          {/* Individual Artwork Markers - only show when zoomed in or heatmap is off */}
-          {(!showHeatmap || Object.keys(artworksByLocation).length < 20) && 
-            Object.entries(artworksByLocation).map(([locationKey, locationArtworks]) => {
-              const [lng, lat] = locationKey.split(',').map(Number);
-              const primaryArtwork = locationArtworks[0];
-              
-              return (
-                <Marker
-                  key={locationKey}
-                  position={[lat, lng]}
-                  icon={createCustomIcon(primaryArtwork.period)}
-                >
-                  <Popup className="custom-popup" maxWidth={300}>
-                    <div className="bg-gray-800 text-white p-4 rounded-lg min-w-[280px]">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-bold text-lg text-blue-400">
-                          {primaryArtwork.location.city}, {primaryArtwork.location.country}
-                        </h3>
-                        <span className="bg-purple-600 text-xs px-2 py-1 rounded-full">
-                          {locationArtworks.length} artwork{locationArtworks.length > 1 ? 's' : ''}
-                        </span>
-                      </div>
-                      
-                      <div className="space-y-3 max-h-64 overflow-y-auto">
-                        {locationArtworks.map((artwork) => (
-                          <div
-                            key={artwork.id}
-                            className="flex items-start space-x-3 p-2 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors"
-                            onClick={() => window.open(`/artwork/${artwork.slug}`, '_self')}
-                          >
-                            <img
-                              src={artwork.imageUrl}
-                              alt={artwork.title}
-                              className="w-12 h-12 object-cover rounded"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-sm text-white truncate">
-                                {artwork.title}
-                              </h4>
-                              <div className="flex items-center text-xs text-gray-300 mt-1">
-                                <User size={10} className="mr-1" />
-                                {artwork.artist}
-                              </div>
-                              <div className="flex items-center text-xs text-gray-400 mt-1">
-                                <Calendar size={10} className="mr-1" />
-                                {artwork.year} • {artwork.period}
-                              </div>
-                            </div>
-                            
-                            {/* Add to Gallery Button in Popup */}
-                            {onAddToGallery && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onAddToGallery(artwork);
-                                }}
-                                className={`w-6 h-6 text-white rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
-                                  galleryArtworkIds.has(artwork.id) 
-                                    ? 'bg-pink-600 hover:bg-pink-700' 
-                                    : 'bg-green-600 hover:bg-green-700'
-                                }`}
-                                title={t('gallery.addToGallery')}
-                              >
-                                <span className="text-xs font-bold leading-none">
-                                  {galleryArtworkIds.has(artwork.id) ? '♥' : '+'}
-                                </span>
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      
-                      <button
-                        onClick={() => handleLocationClick(locationArtworks)}
-                        className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
-                      >
-                        {t('map.viewArtworks')} ({locationArtworks.length})
-                      </button>
-                    </div>
-                  </Popup>
-                </Marker>
-              );
-            })
-          }
         </MapContainer>
         
         {!mapLoaded && (

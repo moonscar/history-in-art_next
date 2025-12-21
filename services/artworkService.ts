@@ -309,6 +309,66 @@ export class ArtworkService {
     }
   }
 
+  static async getArtworksByCountriesAndCityLoose(options: {
+    countries: string[];
+    city?: string;
+    timeRange?: TimeRange;
+    limit?: number;
+  }): Promise<Artwork[]> {
+    try {
+      const { countries, city, timeRange, limit = 30 } = options;
+      const uniqueCountries = Array.from(
+        new Set(countries.map(value => value.trim()).filter(Boolean))
+      );
+
+      const quoteForOr = (value: string) => {
+        const escaped = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        return `"${escaped}"`;
+      };
+
+      const base = () => {
+        let query = supabase
+          .from('artworks')
+          .select('*')
+          .order('map_display_priority', { ascending: false })
+          .order('creation_year', { ascending: true })
+          .limit(limit);
+
+        if (timeRange) {
+          query = query
+            .gte('creation_year', timeRange.start)
+            .lte('creation_year', timeRange.end);
+        }
+
+        return query;
+      };
+
+      if (typeof city === 'string' && city.trim().length > 0) {
+        const cityValue = quoteForOr(city.trim());
+        const { data: cityData, error: cityError } = await base().or(
+          `city.eq.${cityValue},country.eq.${cityValue}`
+        );
+
+        if (!cityError && cityData && cityData.length > 0) {
+          return cityData.map(convertToArtwork);
+        }
+      }
+
+      if (uniqueCountries.length === 0) return [];
+
+      const { data: countryData, error: countryError } = await base().in('country', uniqueCountries);
+      if (countryError) {
+        console.error('Error fetching artworks by countries:', countryError);
+        return [];
+      }
+
+      return (countryData || []).map(convertToArtwork);
+    } catch (error) {
+      console.error('Error in getArtworksByCountriesAndCityLoose:', error);
+      return [];
+    }
+  }
+
   // Search artworks
   static async searchArtworks(searchTerm: string): Promise<Artwork[]> {
     try {
