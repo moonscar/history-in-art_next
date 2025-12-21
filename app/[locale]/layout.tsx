@@ -11,6 +11,7 @@ import Script from 'next/script';
 export const metadata: Metadata = {
   title: "History in Art",
   description: "Art as eyes, witness history",
+  metadataBase: new URL('https://www.history-in-art.org')
 };
 
 export default async function RootLayout({

@@ -4,14 +4,44 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, Calendar, MapPin, Palette, Image as ImageIcon } from 'lucide-react';
 import { getTranslations, getLocale } from 'next-intl/server';
 import { ThemeService } from '@/services/themeService';
-import SEOHead from '@/components/SEOHead';
 import ArtworkCard from '@/components/ArtworkCardServer';
 import { generateCollectionStructuredData } from '@/utils/structuredData';
+import type { Metadata } from 'next';
 
 interface ThemeDetailPageProps {
   params: {
     slug: string;
     locale: string;
+  };
+}
+
+export async function generateMetadata({ params }: ThemeDetailPageProps): Promise<Metadata> {
+  const { slug, locale } = params;
+  const isZh = locale === 'zh';
+
+  const theme = await ThemeService.getThemeBySlug(slug);
+  if (!theme) {
+    return {
+      title: isZh ? '主题未找到 | History in Art' : 'Theme Not Found | History in Art',
+      robots: { index: false, follow: false }
+    };
+  }
+
+  const title = `${theme.title} | ${isZh ? '艺术主题' : 'Art Theme'} | History in Art`;
+  const description = `${theme.description.substring(0, 160)}... ${isZh ? '包含' : 'Contains'} ${theme.artworkCount ?? theme.artworks?.length ?? 0} ${isZh ? '件艺术作品' : 'artworks'}.`;
+
+  return {
+    title,
+    description,
+    robots: { index: true, follow: true },
+    alternates: {
+      canonical: `https://www.history-in-art.org/${locale}/themes/${theme.slug}`,
+      languages: {
+        'zh-CN': `https://www.history-in-art.org/zh/themes/${theme.slug}`,
+        en: `https://www.history-in-art.org/en/themes/${theme.slug}`,
+        'x-default': `https://www.history-in-art.org/themes/${theme.slug}`
+      }
+    }
   };
 }
 
@@ -40,16 +70,6 @@ export default async function ThemeDetailPage({ params }: ThemeDetailPageProps) 
     notFound();
   }
 
-  // Generate SEO data
-  const seoData = {
-    title: `${theme.title} | ${locale === 'zh' ? '艺术主题' : 'Art Theme'} | History in Art`,
-    description: `${theme.description.substring(0, 160)}... ${locale === 'zh' ? '包含' : 'Contains'} ${theme.artworkCount ?? theme.artworks?.length ?? 0} ${locale === 'zh' ? '件艺术作品' : 'artworks'}.`,
-    keywords: `${theme.title},${locale === 'zh' ? '艺术主题,艺术收藏,艺术展览' : 'art theme,art collection,art exhibition'}`,
-    image: theme.imageUrl,
-    type: 'article' as const,
-    canonical: `https://history-in-art.org/themes/${theme.slug}`
-  };
-
   const structuredData = generateCollectionStructuredData(
     theme.artworks || [], 
     undefined, 
@@ -58,7 +78,10 @@ export default async function ThemeDetailPage({ params }: ThemeDetailPageProps) 
 
   return (
     <>
-      <SEOHead {...seoData} structuredData={structuredData} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
         {/* Hero Section */}
         <section className="relative h-96 overflow-hidden">

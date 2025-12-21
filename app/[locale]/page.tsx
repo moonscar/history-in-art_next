@@ -1,15 +1,30 @@
-// app/page.tsx - 主页面容器
-'use client'
+import type { Metadata } from 'next';
+import App from '@/components/App';
 
-// import App from '@/components/App'
-import dynamic from 'next/dynamic'
+type HomePageProps = {
+  params: { locale: string };
+};
 
-const App = dynamic(() => import('@/components/App'), {
-  ssr: false
-})
+export async function generateMetadata({ params }: HomePageProps): Promise<Metadata> {
+  const isZh = params.locale === 'zh';
+  const title = isZh ? 'History in Art' : 'History in Art';
+  const description = 'Art as eyes, witness history';
+
+  return {
+    title,
+    description,
+    robots: { index: true, follow: true },
+    alternates: {
+      canonical: `https://www.history-in-art.org/${params.locale}`,
+      languages: {
+        'zh-CN': 'https://www.history-in-art.org/zh',
+        en: 'https://www.history-in-art.org/en',
+        'x-default': 'https://www.history-in-art.org/'
+      }
+    }
+  };
+}
 
 export default function HomePage() {
-  return (
-    <App />
-  )
+  return <App />;
 }

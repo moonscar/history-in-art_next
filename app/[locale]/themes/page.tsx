@@ -3,9 +3,35 @@ import Link from 'next/link';
 import { ArrowLeft, Palette, Calendar, Image as ImageIcon } from 'lucide-react';
 import { getTranslations, getLocale } from 'next-intl/server';
 import { ThemeService } from '@/services/themeService';
-import SEOHead from '@/components/SEOHead';
 import { AdSense } from '@/components/AdSense';
 import { generateWebsiteStructuredData } from '@/utils/structuredData';
+import type { Metadata } from 'next';
+
+type ThemesPageMetadataProps = {
+  params: { locale: string };
+};
+
+export async function generateMetadata({ params }: ThemesPageMetadataProps): Promise<Metadata> {
+  const isZh = params.locale === 'zh';
+  const title = isZh ? '艺术主题 | History in Art' : 'Art Themes | History in Art';
+  const description = isZh
+    ? '探索精心策划的艺术主题，发现不同时期、风格和地区的艺术作品集合。'
+    : 'Explore curated art themes and discover collections of artworks from different periods, styles, and regions.';
+
+  return {
+    title,
+    description,
+    robots: { index: true, follow: true },
+    alternates: {
+      canonical: `https://www.history-in-art.org/${params.locale}/themes`,
+      languages: {
+        'zh-CN': 'https://www.history-in-art.org/zh/themes',
+        en: 'https://www.history-in-art.org/en/themes',
+        'x-default': 'https://www.history-in-art.org/themes'
+      }
+    }
+  };
+}
 
 export default async function ThemesPage() {
   const t = await getTranslations();
@@ -14,23 +40,14 @@ export default async function ThemesPage() {
   // Fetch all themes
   const themes = await ThemeService.getAllThemes();
 
-  // Generate SEO data
-  const seoData = {
-    title: locale === 'zh' ? '艺术主题 | History in Art' : 'Art Themes | History in Art',
-    description: locale === 'zh' 
-      ? '探索精心策划的艺术主题，发现不同时期、风格和地区的艺术作品集合。'
-      : 'Explore curated art themes and discover collections of artworks from different periods, styles, and regions.',
-    keywords: locale === 'zh'
-      ? '艺术主题,艺术收藏,艺术展览,艺术分类,艺术探索'
-      : 'art themes,art collections,art exhibitions,art categories,art exploration',
-    canonical: 'https://history-in-art.org/themes'
-  };
-
   const structuredData = generateWebsiteStructuredData();
 
   return (
     <>
-      <SEOHead {...seoData} structuredData={structuredData} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
         {/* Header */}
         <header className="bg-black/20 backdrop-blur-sm border-b border-gray-700">

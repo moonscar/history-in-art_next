@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
@@ -5,7 +7,6 @@ import { Artwork, TimeRange, Location } from '@/types';
 import { useArtworks } from '@/hooks/useArtworks';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { parseURLParams, updateURL, generateURLParams, getInitialStateFromURL, URLParams } from '@/utils/urlParams';
-import SEOHead from '@/components/SEOHead';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { 
   generateWebsiteStructuredData, 
@@ -404,63 +405,34 @@ function App() {
   // Show loading state
   if (loading && dbArtworks.length === 0) {
     return (
-      <>
-        <SEOHead 
-          title={`${t('loading.title')} | ${t('site.name')}`}
-          description={t('loading.artworks')}
-          keywords={keywords} 
-          structuredData={websiteData}
-          robots="noindex, nofollow"
-          currentLanguage={locale}
-        />
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <h2 className="text-2xl font-bold text-white mb-2">{t('loading.title')}</h2>
-            <p className="text-gray-300">{t('loading.fetchingData')}</p>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h2 className="text-2xl font-bold text-white mb-2">{t('loading.title')}</h2>
+          <p className="text-gray-300">{t('loading.fetchingData')}</p>
         </div>
-      </>
+      </div>
     );
   }
 
   // Show error state
   if (error) {
     return (
-      <>
-        <SEOHead 
-          title={`${t('error.databaseConnection')} | ${t('site.name')}`}
-          description={t('error.description')}
-          keywords={keywords} 
-          structuredData={websiteData}
-          robots="noindex, nofollow"
-          currentLanguage={locale}
-        />
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
-          <div className="text-center max-w-md">
-            <AlertCircle size={64} className="text-red-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">{t('error.databaseConnection')}</h2>
-            <p className="text-gray-300 mb-4">{error}</p>
-            <p className="text-sm text-gray-400">
-              {t('error.supabaseSetup')}
-            </p>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertCircle size={64} className="text-red-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-2">{t('error.databaseConnection')}</h2>
+          <p className="text-gray-300 mb-4">{error}</p>
+          <p className="text-sm text-gray-400">
+            {t('error.supabaseSetup')}
+          </p>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
     <>
-      <SEOHead 
-        title={title} 
-        description={description} 
-        keywords={keywords} 
-        structuredData={allStructuredData}
-        robots={robots}
-        hreflang={hreflangLinks}
-        currentLanguage={locale}
-      />
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
         {/* Header */}
         <Navbar

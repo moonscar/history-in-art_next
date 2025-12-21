@@ -4,13 +4,45 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, MapPin, Calendar, User, Palette, Image, ExternalLink } from 'lucide-react';
 import { ArtworkService } from '@/services/artworkService';
 import { generateArtworkStructuredData } from '@/utils/structuredData';
-import SEOHead from '@/components/SEOHead';
 import { AdSense } from '@/components/AdSense';
+import type { Metadata } from 'next';
 
 interface ArtworkDetailPageProps {
   params: {
     slug: string;
     locale: string;
+  };
+}
+
+export async function generateMetadata({ params }: ArtworkDetailPageProps): Promise<Metadata> {
+  const { slug, locale } = params;
+  const artwork = await ArtworkService.getArtworkBySlug(slug);
+
+  if (!artwork) {
+    return {
+      title: 'Artwork Not Found | History in Art',
+      robots: { index: false, follow: false }
+    };
+  }
+
+  const isZh = locale === 'zh';
+  const title = `${artwork.title} - ${artwork.artist} | History in Art`;
+  const description = isZh
+    ? `${artwork.description.substring(0, 160)}... 创作于${artwork.year}年，${artwork.location.city}, ${artwork.location.country}。`
+    : `${artwork.description.substring(0, 160)}... Created in ${artwork.year}, ${artwork.location.city}, ${artwork.location.country}.`;
+
+  return {
+    title,
+    description,
+    robots: { index: true, follow: true },
+    alternates: {
+      canonical: `https://www.history-in-art.org/${locale}/artwork/${artwork.slug}`,
+      languages: {
+        'zh-CN': `https://www.history-in-art.org/zh/artwork/${artwork.slug}`,
+        en: `https://www.history-in-art.org/en/artwork/${artwork.slug}`,
+        'x-default': `https://www.history-in-art.org/artwork/${artwork.slug}`
+      }
+    }
   };
 }
 
@@ -37,16 +69,6 @@ async function ArtworkDetailPage({ params }: ArtworkDetailPageProps) {
     notFound();
   }
 
-  // Generate SEO data
-  const artworkSEO = {
-    title: `${artwork.title} - ${artwork.artist} | History in Art`,
-    description: `${artwork.description.substring(0, 160)}... 创作于${artwork.year}年，${artwork.location.city}, ${artwork.location.country}。`,
-    keywords: `${artwork.title},${artwork.artist},${artwork.movement},${artwork.period},${artwork.location.country},艺术品`,
-    image: artwork.imageUrl,
-    type: 'article' as const,
-    canonical: `https://history-in-art.org/artwork/${artwork.slug}`
-  };
-
   const structuredData = generateArtworkStructuredData(artwork);
 
   const keywordTags = Array.from(
@@ -68,7 +90,10 @@ async function ArtworkDetailPage({ params }: ArtworkDetailPageProps) {
 
   return (
     <>
-      <SEOHead {...artworkSEO} structuredData={structuredData} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
         {/* Hero Section */}
         <section className="relative h-96 overflow-hidden">
